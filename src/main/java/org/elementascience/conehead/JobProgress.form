@@ -4,49 +4,175 @@
     <rowspec value="center:d:noGrow"/>
     <rowspec value="top:3dlu:noGrow"/>
     <rowspec value="center:d:grow"/>
-    <colspec value="fill:d:grow"/>
+    <colspec value="left:d:grow"/>
     <colspec value="left:4dlu:noGrow"/>
+    <colspec value="fill:d:noGrow"/>
     <colspec value="fill:max(d;4px):noGrow"/>
+    <colspec value="right:max(d;4px):noGrow"/>
+    <colspec value="left:4dlu:noGrow"/>
+    <colspec value="fill:d:grow(5.0)"/>
     <constraints>
-      <xy x="20" y="20" width="500" height="400"/>
+      <xy x="20" y="20" width="583" height="400"/>
     </constraints>
     <properties/>
     <border type="none"/>
     <children>
-      <component id="f65e5" class="javax.swing.JLabel">
+      <scrollpane id="b775d">
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-          <forms/>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <forms top="5" left="5" bottom="5" right="5" defaultalign-horz="false" defaultalign-vert="false"/>
         </constraints>
         <properties>
-          <text value="Label"/>
+          <background swing-color="CheckBox.background"/>
         </properties>
-      </component>
-      <component id="6fea2" class="javax.swing.JButton" binding="button1" default-binding="true">
+        <border type="none" title="Job List"/>
+        <children>
+          <component id="d61b8" class="javax.swing.JList" binding="list1" default-binding="true">
+            <constraints/>
+            <properties>
+              <font size="20"/>
+              <selectionBackground color="-3355444"/>
+              <selectionForeground color="-16777216"/>
+            </properties>
+          </component>
+        </children>
+      </scrollpane>
+      <component id="ee35f" class="javax.swing.JButton" binding="button2" default-binding="true">
         <constraints>
-          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
           <forms/>
         </constraints>
         <properties>
           <text value="+"/>
         </properties>
       </component>
-      <scrollpane id="b775d">
+      <component id="f65e5" class="javax.swing.JLabel">
         <constraints>
-          <grid row="2" column="0" row-span="1" col-span="3" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-          <forms defaultalign-vert="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+          <forms top="0" left="5" bottom="0" right="0"/>
         </constraints>
-        <properties/>
-        <border type="none"/>
+        <properties>
+          <labelFor value="b775d"/>
+          <text value="Publishing Jobs"/>
+        </properties>
+      </component>
+      <component id="721af" class="javax.swing.JButton" binding="button1" default-binding="true">
+        <constraints>
+          <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <forms/>
+        </constraints>
+        <properties>
+          <background color="-3342337"/>
+          <text value="refresh"/>
+        </properties>
+      </component>
+      <hspacer id="a33b3">
+        <constraints>
+          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <forms defaultalign-horz="false" defaultalign-vert="false"/>
+        </constraints>
+      </hspacer>
+      <grid id="f6f2" binding="jobPanel" layout-manager="FormLayout">
+        <rowspec value="top:d:noGrow"/>
+        <rowspec value="top:3dlu:noGrow"/>
+        <rowspec value="center:d:noGrow"/>
+        <rowspec value="top:3dlu:noGrow"/>
+        <rowspec value="center:d:grow"/>
+        <colspec value="fill:d:grow"/>
+        <colspec value="left:4dlu:noGrow"/>
+        <colspec value="fill:d:grow"/>
+        <colspec value="left:4dlu:noGrow"/>
+        <colspec value="fill:d:grow"/>
+        <constraints>
+          <grid row="2" column="2" row-span="1" col-span="5" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <forms top="5" left="5" bottom="5" right="5" defaultalign-vert="false"/>
+        </constraints>
+        <properties>
+          <preferredSize width="400" height="0"/>
+        </properties>
+        <border type="line" title="Job Details"/>
         <children>
-          <component id="d61b8" class="javax.swing.JList" binding="list1" custom-create="true" default-binding="true">
-            <constraints/>
+          <component id="f335b" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="5" fill="0" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-horz="false" defaultalign-vert="false"/>
+            </constraints>
             <properties>
-              <font size="20"/>
+              <text value="latest completed step"/>
+              <verticalAlignment value="1"/>
+              <verticalTextPosition value="1"/>
             </properties>
           </component>
+          <component id="518c7" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="5" fill="0" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-horz="false" defaultalign-vert="false"/>
+            </constraints>
+            <properties>
+              <text value="return value"/>
+              <verticalAlignment value="1"/>
+              <verticalTextPosition value="1"/>
+            </properties>
+          </component>
+          <component id="95044" class="javax.swing.JLabel" binding="codeLabel">
+            <constraints>
+              <grid row="2" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-vert="false"/>
+            </constraints>
+            <properties>
+              <text value=""/>
+              <verticalAlignment value="1"/>
+              <verticalTextPosition value="1"/>
+            </properties>
+          </component>
+          <scrollpane id="8bd06">
+            <constraints>
+              <grid row="4" column="0" row-span="1" col-span="5" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-horz="false" defaultalign-vert="false"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="b475" class="javax.swing.JTextPane" binding="jobReportTxt">
+                <constraints/>
+                <properties>
+                  <editable value="false"/>
+                  <enabled value="false"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+          <component id="68868" class="javax.swing.JLabel" binding="stateLabel">
+            <constraints>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="9" fill="0" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-vert="false"/>
+            </constraints>
+            <properties>
+              <text value=""/>
+              <verticalAlignment value="1"/>
+              <verticalTextPosition value="1"/>
+            </properties>
+          </component>
+          <hspacer id="d5dd1">
+            <constraints>
+              <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-horz="false"/>
+            </constraints>
+          </hspacer>
+          <hspacer id="7f548">
+            <constraints>
+              <grid row="2" column="4" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+              <forms defaultalign-horz="false"/>
+            </constraints>
+          </hspacer>
         </children>
-      </scrollpane>
+      </grid>
+      <hspacer id="b15d9">
+        <constraints>
+          <grid row="0" column="6" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+          <forms defaultalign-horz="false"/>
+        </constraints>
+      </hspacer>
     </children>
   </grid>
 </form>

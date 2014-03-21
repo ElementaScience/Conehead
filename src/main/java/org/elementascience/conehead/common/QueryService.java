@@ -64,6 +64,10 @@ public class QueryService {
 
     private HashMap<JobState, ResultPair> stages = new HashMap<JobState, ResultPair>();
 
+    public String toString() {
+      return name;
+    }
+
     public IngestJob(String name, List<Attribute> attributes) {
       this.name = name;
       for (Attribute attr : attributes) {
@@ -76,7 +80,7 @@ public class QueryService {
         } else {
           String[] vals = attr.getName().split("_");
           if (vals.length == 2) {
-            JobState js = JobState.valueOf(vals[0]);
+            JobState js = JobState.valueOf(vals[0].toUpperCase());
             if (!stages.containsKey(js)) {
               stages.put(js, new ResultPair());
             }
@@ -106,6 +110,18 @@ public class QueryService {
 
     public String getName() {
       return name;
+    }
+
+    public String getState() {
+      return state.toString();
+    }
+
+    public int getCode() {
+      return this.stages.get(state).getResultCode();
+    }
+
+    public String getReport() {
+      return this.stages.get(state).getResultText();
     }
   }
 
