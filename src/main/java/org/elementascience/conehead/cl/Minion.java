@@ -61,16 +61,19 @@ public class Minion {
       Message msg = serv.pollQueue();
 
       if (msg != null) {
+        System.out.println("minion awakes!");
         String[] split = msg.getBody().split("_");
         String timestamp = split[0];
         String articleNumber = split[1];
         serv.updatePackageStatus(msg.getBody(), "awoken", 0, "");
 
-        System.out.println("downloading item" + msg.getBody());
+        System.out.println("downloading item Article: " +  articleNumber + " timestamp: " + timestamp);
         File outputFile = new File("/var/local/ingest/hold", msg.getBody() + ".zip");
         int downloadRes = serv.downloadFile(msg.getBody(), outputFile);
 
+
         if (downloadRes == 0) {
+          System.out.println("running prep-scripts and image generation for article: " + articleNumber);
           serv.updatePackageStatus(msg.getBody(), "recieved", downloadRes, "");
           serv.deleteFile(msg.getBody());
 
@@ -80,13 +83,16 @@ public class Minion {
           if (opResult.result == 0) {
             // TODO use file operator to do this
             // copy file from prepped to todo
+            System.out.println("moving package to IngestDirectory on server");
             int resultCode = prep.deploy(timestamp, articleNumber);
             if (resultCode == 0) {
 
+              System.out.println("ingesting package :" + articleNumber);
               int ingestResult = RhinoSubmitter.attemptIngest(articleNumber);
               serv.updatePackageStatus(msg.getBody(), "ingested", ingestResult, "");
 
               if (ingestResult == 0) {
+                System.out.println("Publish article :" + articleNumber);
                 int finalCode = RhinoSubmitter.publish(articleNumber);
                 serv.updatePackageStatus(msg.getBody(), "published", finalCode, "");
 
