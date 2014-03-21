@@ -13,5 +13,8 @@
   <bean id="service" class="org.elementascience.conehead.common.UploadService">
     <constructor-arg index="0" ref="projectProperties"/>
   </bean>
+  <bean id="qservice" class="org.elementascience.conehead.common.QueryService">
+    <constructor-arg index="0" ref="projectProperties"/>
+  </bean>
 
 </beans>

@@ -3,6 +3,7 @@ package org.elementascience.conehead.cl;
 import com.amazonaws.services.sqs.model.Message;
 import org.apache.commons.cli.*;
 import org.apache.commons.configuration.Configuration;
+import org.elementascience.conehead.common.JobState;
 import org.elementascience.conehead.common.UploadService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -65,20 +66,20 @@ public class Minion {
         String[] split = msg.getBody().split("_");
         String timestamp = split[0];
         String articleNumber = split[1];
-        serv.updatePackageStatus(msg.getBody(), "awoken", 0, "");
+        serv.updatePackageStatus(msg.getBody(), JobState.ONDECK, 0, "");
 
         System.out.println("downloading item Article: " +  articleNumber + " timestamp: " + timestamp);
         File outputFile = new File("/var/local/ingest/hold", msg.getBody() + ".zip");
         int downloadRes = serv.downloadFile(msg.getBody(), outputFile);
+        serv.updatePackageStatus(msg.getBody(), JobState.UNPACKED, downloadRes, "");
 
 
         if (downloadRes == 0) {
           System.out.println("running prep-scripts and image generation for article: " + articleNumber);
-          serv.updatePackageStatus(msg.getBody(), "recieved", downloadRes, "");
           serv.deleteFile(msg.getBody());
 
           ArticlePreparer.OpResult opResult = prep.doOne(timestamp, articleNumber);
-          serv.updatePackageStatus(msg.getBody(), "prepared", opResult.result, opResult.message);
+          serv.updatePackageStatus(msg.getBody(), JobState.PREPARED, opResult.result, opResult.message);
 
           if (opResult.result == 0) {
             // TODO use file operator to do this
@@ -89,12 +90,12 @@ public class Minion {
 
               System.out.println("ingesting package :" + articleNumber);
               int ingestResult = RhinoSubmitter.attemptIngest(articleNumber);
-              serv.updatePackageStatus(msg.getBody(), "ingested", ingestResult, "");
+              serv.updatePackageStatus(msg.getBody(), JobState.INGESTED, ingestResult, "");
 
               if (ingestResult == 0) {
                 System.out.println("Publish article :" + articleNumber);
                 int finalCode = RhinoSubmitter.publish(articleNumber);
-                serv.updatePackageStatus(msg.getBody(), "published", finalCode, "");
+                serv.updatePackageStatus(msg.getBody(), JobState.PUBLISHED, finalCode, "");
 
                 if (finalCode == 0) {
                   System.out.println("article is now fully published");

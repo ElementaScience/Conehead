@@ -180,7 +180,7 @@ public class UploadService {
 
     try {
       List<ReplaceableAttribute> attrs = new ArrayList<ReplaceableAttribute>();
-      attrs.add(new ReplaceableAttribute("state", "new", true));
+      attrs.add(new ReplaceableAttribute("state", JobState.NEW.toString() , true));
       attrs.add(new ReplaceableAttribute("timestamp", tstamp, true));
       attrs.add(new ReplaceableAttribute("article", id, true));
       attrs.add(new ReplaceableAttribute("new_res", String.valueOf(opRes), true));
@@ -204,13 +204,13 @@ public class UploadService {
     return result;
   }
 
-  public int updatePackageStatus(String key, String newStatus, int result, String report) {
+  public int updatePackageStatus(String key, JobState newStatus, int result, String report) {
     int returnVal = 0;
 
     try {
 
       ArrayList<ReplaceableAttribute> attrs = new ArrayList<ReplaceableAttribute>();
-      attrs.add(new ReplaceableAttribute("state", newStatus, true));
+      attrs.add(new ReplaceableAttribute("state", newStatus.toString(), true));
       attrs.add(new ReplaceableAttribute(newStatus + "_res", String.valueOf(result), true));
       attrs.add(new ReplaceableAttribute(newStatus + "_rep", report, true));
 
