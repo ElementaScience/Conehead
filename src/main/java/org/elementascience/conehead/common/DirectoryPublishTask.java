@@ -26,27 +26,28 @@ import java.util.zip.ZipOutputStream;
 public class DirectoryPublishTask extends SwingWorker<Integer, String> {
   File      articleDir;
   JTextPane ta;
-  JButton   toEnable;
+  JLabel statusLabel;
+
   private UploadService serv;
   private JProgressBar  pb;
   private Upload        upload;
   private volatile String        tstamp;
   private volatile String aID;
 
-  public DirectoryPublishTask(UploadService serv, JTextPane textPane, JProgressBar progressBar1, JButton uploadButton, File theSelection) {
+  public DirectoryPublishTask(UploadService serv, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection) {
     this.serv = serv;
     pb = progressBar1;
+    statusLabel = label;
     articleDir = theSelection;
     ta = textPane;
-    toEnable = uploadButton;
     upload = null;
 
     HTMLDocument doc = (HTMLDocument) ta.getDocument();
-    try {
-      doc.replace(0, doc.getLength(), "", null);
-    } catch (BadLocationException e) {
-      e.printStackTrace();
-    }
+//    try {
+//      doc.replace(0, doc.getLength(), "", null);
+//    } catch (BadLocationException e) {
+//      e.printStackTrace();
+//    }
   }
 
   @Override
@@ -54,12 +55,16 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     HTMLDocument doc = (HTMLDocument) ta.getDocument();
     HTMLEditorKit editorKit = (HTMLEditorKit) ta.getEditorKit();
     for (String msg : chunks) {
-      try {
-        editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
-      } catch (BadLocationException e) {
-        e.printStackTrace();
-      } catch (IOException e) {
-        e.printStackTrace();
+      if (msg.startsWith("status")) {
+        statusLabel.setText(msg.substring(6));
+      } else {
+        try {
+            editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
       }
     }
   }
@@ -91,7 +96,10 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
       e.printStackTrace();
     }
 
-    toEnable.setEnabled(true);
+  }
+
+  void statusMessage(String msg) {
+    publish("status"+msg);
   }
 
   void sectionMessage(String msg) {
@@ -122,7 +130,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
       errorMessage("Input directory is not actually a directory. [" + articleDir.getAbsolutePath() + "]");
       return 1;
     }
-
+    statusMessage("NameCheck");
     sectionMessage("Checking filename conventions.");
     if (filesViolateNaming(articleDir)) {
       return 1;
@@ -134,6 +142,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     // publish("\n<h2>Confirming filetypes.</h2>");
 
     publish("\n\n");
+    statusMessage("Compressing");
     sectionMessage("Zipping directory contents for upload.");
 
     File result = zipDir(articleDir);
@@ -143,8 +152,9 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     }
 
     publish("\n\n");
+    statusMessage("Uploading");
     sectionMessage("Uploading to server.");
-
+    pb.setVisible(true);
     String articleID = getIdFromFileConsensus(articleDir);
 
     long unixTime = System.currentTimeMillis() / 1000L;
@@ -154,13 +164,50 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     if (resultCode != 0) {
       errorMessage("Upload failed[" + result.getName() + "]");
       return 1;
+    } else {
+      publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds." );
     }
 
+    statusMessage("Queueing");
     sectionMessage("Notify minion to prep and stage article.");
     resultCode = serv.notifyMinion(timestamp, articleID);
     if (resultCode != 0) {
       errorMessage("queue insertion failed[" + timestamp + "_" + articleID + "]");
       return 1;
+    }
+
+    statusMessage("Awaiting service");
+    UploadService.IngestJob job = null;
+
+    int state = 0;
+
+    while (null == job) {
+      long mill = System.currentTimeMillis();
+      while (System.currentTimeMillis() - 2000 < mill);
+      job = serv.getJob(timestamp + "_" + articleID);
+    }
+
+    statusMessage(job.getState());
+    JobState js = JobState.valueOf(job.getState());
+    JobState oldState = js;
+
+    sectionMessage(job.getState() + " complete. result=" + String.valueOf(job.getCode()));
+    publish(job.getReport());
+
+    while (!js.equals(JobState.PUBLISHED) && job.getCode() == 0) {
+      long mill = System.currentTimeMillis();
+      while (System.currentTimeMillis() - 1000 < mill);
+      System.out.println("query");
+      job = serv.getJob(timestamp + "_" + articleID);
+
+      js = JobState.valueOf(job.getState());
+      if (oldState != js) {
+        statusMessage(job.getState());
+
+        sectionMessage(job.getState() + " complete. result=" + String.valueOf(job.getCode()));
+        publish(job.getReport());
+        oldState = js;
+      }
     }
 
     this.tstamp = timestamp;
@@ -282,6 +329,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
         switch (progressEvent.getEventCode()) {
           case ProgressEvent.COMPLETED_EVENT_CODE:
             pb.setValue(100);
+            pb.setVisible(false);
             break;
           case ProgressEvent.FAILED_EVENT_CODE:
             try {

@@ -117,7 +117,7 @@
     <build>
         <finalName>SpringApp</finalName>
         <plugins>
-            <plugin>
+          <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.6</source>

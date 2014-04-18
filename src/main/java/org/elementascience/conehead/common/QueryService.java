@@ -33,6 +33,29 @@ public class QueryService {
   }
 
 
+  public IngestJob getJob(String key) {
+    IngestJob result = null;
+
+    try {
+      SelectRequest sr = new SelectRequest().withSelectExpression("select * from " + registryName + " where itemName()= " + key);
+      SelectResult jobs = sdb.select(sr);
+
+      List<Item> items = jobs.getItems();
+
+      if (items.size() != 0) {
+        Item item = items.iterator().next();
+        result = new IngestJob(item.getName(), item.getAttributes());
+      }
+
+    } catch (AmazonServiceException ase) {
+      System.out.println("Caught Exception: " + ase.getMessage());
+      System.out.println("Reponse Status Code: " + ase.getStatusCode());
+      System.out.println("Error Code: " + ase.getErrorCode());
+      System.out.println("Request ID: " + ase.getRequestId());
+    }
+
+    return result;
+  }
 
   public List<IngestJob> getJobs() {
     ArrayList<IngestJob> result = new ArrayList<IngestJob>();
