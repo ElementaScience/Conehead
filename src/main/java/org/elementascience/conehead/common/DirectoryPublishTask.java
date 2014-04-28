@@ -75,9 +75,9 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
       Integer result = get();
 
       if (result == 0) {
-        process(Collections.singletonList("Job completed successfully"));
+        sectionMessage("Job completed successfully");
       } else {
-        process(Collections.singletonList("return code = " + result + "\n"));
+        errorMessage("Job failed:  return code = " + result + "\n");
       }
 
       HTMLDocument doc = (HTMLDocument) ta.getDocument();
@@ -116,6 +116,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
 
   @Override
   protected Integer doInBackground() {
+
     if (articleDir == null) {
       errorMessage("Invalid input directory [null].");
       return 1;
@@ -187,12 +188,16 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
       job = serv.getJob(timestamp + "_" + articleID);
     }
 
-    statusMessage(job.getState());
     JobState js = JobState.valueOf(job.getState());
+    statusMessage(job.getState());
     JobState oldState = js;
 
-    sectionMessage(job.getState() + " complete. result=" + String.valueOf(job.getCode()));
-    publish(job.getReport());
+    sectionMessage("Phase: " + job.getState() + " complete.");
+    publish("Result code=" + String.valueOf(job.getCode()));
+    publish("Output from process:");
+    for (String item : job.getReport().split("\n")) {
+      publish(item);
+    }
 
     while (!js.equals(JobState.PUBLISHED) && job.getCode() == 0) {
       long mill = System.currentTimeMillis();
@@ -204,15 +209,20 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
       if (oldState != js) {
         statusMessage(job.getState());
 
-        sectionMessage(job.getState() + " complete. result=" + String.valueOf(job.getCode()));
-        publish(job.getReport());
+        sectionMessage("Phase: " + job.getState() + " complete.");
+        publish("Result code=" + String.valueOf(job.getCode()));
+        publish("Output from process:");
+        for (String item : job.getReport().split("\n")) {
+          publish(item);
+        }
+
         oldState = js;
       }
     }
 
     this.tstamp = timestamp;
     this.aID = articleID;
-    return 0;
+    return job.getCode();
   }
 
   private String getIdFromFileConsensus(File theDir) {
@@ -293,7 +303,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
         } else if (tail.matches("\\.s\\d\\d\\d\\..*")) {
           // its a supplemental
         } else {
-          errorMessage("Directory contains file that is not a supported type [" + f.getName() + "]");
+          errorMessage("Directory contains file that is not a supported type [" + f.getAbsoluteFile() + "]");
           publish("Files must be either epub,mobi,pdf,json,xml, or tif or supplemental sXXX.*");
           return true;
         }
