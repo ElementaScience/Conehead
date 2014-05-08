@@ -13,8 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -132,12 +131,18 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
       return 1;
     }
     statusMessage("NameCheck");
-    sectionMessage("Checking filename conventions.");
-    if (filesViolateNaming(articleDir)) {
-      return 1;
-    } else {
-      publish("\nFiles are named properly.");
-    }
+
+	  sectionMessage("Analyzing filenames.");
+	  try
+	  {
+		  String statusMsg = IngestUtilities.analyzeFilenames(Arrays.asList(articleDir.list()));
+		  publish(statusMsg);
+	  }
+	  catch (RuntimeException e)
+	  {
+		  errorMessage(e.getMessage());
+		  return 1;
+	  }
 
     //TODO Must implement graphic file validation
     // publish("\n<h2>Confirming filetypes.</h2>");
@@ -146,7 +151,9 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     statusMessage("Compressing");
     sectionMessage("Zipping directory contents for upload.");
 
-    File result = zipDir(articleDir);
+	  List<String> filenames = IngestUtilities.getFilenamesToZip(Arrays.asList(articleDir.list()));
+	  File result = zipDir(articleDir, filenames);
+
     if (result == null) {
       errorMessage("failed to zip input[" + result + "]");
       return 1;
@@ -225,7 +232,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     return job.getCode();
   }
 
-  private String getIdFromFileConsensus(File theDir) {
+
+	private String getIdFromFileConsensus(File theDir) {
     for (File f : theDir.listFiles()) {
       if (f.isFile()) {
         String name = f.getName();
@@ -362,65 +370,84 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     }
   }
 
-  public File zipDir(File input) {
-    File result = null;
-    try {
-      File temp = File.createTempFile("AmbraUploader", ".zip");
-      temp.deleteOnExit();
+	public File zipDir(File directory, List<String> filenames)
+	{
+		File result = null;
+		try
+		{
+			File temp = File.createTempFile("AmbraUploader", ".zip");
+//			temp.deleteOnExit();
 
-      FileOutputStream fos = new FileOutputStream(temp);
-      ZipOutputStream zos = new ZipOutputStream(fos);
-      zos.setLevel(9);
+			FileOutputStream fos = new FileOutputStream(temp);
+			ZipOutputStream zos = new ZipOutputStream(fos);
+			zos.setLevel(9);
 
-      addDirToArchive(zos, input);
+			addDirToArchive(zos, directory, filenames);
 
-      // close the ZipOutputStream
-      zos.close();
-      result = temp;
-    } catch (IOException ioe) {
-      publish("Error creating zip file: " + ioe);
-    }
-    return result;
-  }
+			// close the ZipOutputStream
+			zos.close();
+			result = temp;
+		} catch (IOException ioe)
+		{
+			publish("Error creating zip file: " + ioe);
+		}
+		return result;
+	}
 
-  private void addDirToArchive(ZipOutputStream zos, File srcFile) {
+	private void addDirToArchive(ZipOutputStream zos, File directory, List<String> filenamesToZip)
+	{
+		publish("Zipping directory: \"" + directory.getName() + "\"");
+		publish("<br>");
 
-    File[] files = srcFile.listFiles();
+		Set<String> ignoredFilenames = new HashSet<String>();
+		for (String filename : directory.list())
+		{
+			if (filenamesToZip.contains(filename))
+			{
+				ZipFile(zos, directory, filename);
+			}
+			else
+			{
+				ignoredFilenames.add(filename);
+			}
+		}
 
-    publish("zipping directory: " + srcFile.getName());
+		publish("<br>");
+		for (String filename : ignoredFilenames)
+		{
+			publish("Ignoring file: \"" + filename + "\"");
 
-    for (int i = 0; i < files.length; i++) {
+		}
+	}
 
-      if (files[i].getName().startsWith(".")) {
-        continue;
-      }
+	private void ZipFile(ZipOutputStream zos, File directory, String filenameToZip)
+	{
+		try
+		{
+			String standardizedFilename = IngestUtilities.makeZipFilename (filenameToZip);
 
-      // if the file is directory, use recursion
-      if (files[i].isDirectory()) {
-        addDirToArchive(zos, files[i]);
-        continue;
-      }
+			publish("Adding file: \"" + filenameToZip + "\".");
 
-      try {
-        publish("Adding file: " + files[i].getName());
+			String fullPath = directory.getAbsolutePath() + File.separator + filenameToZip;
+			File file = new File(fullPath);
 
-        byte[] buffer = new byte[2048];
-        FileInputStream fis = new FileInputStream(files[i]);
-        zos.putNextEntry(new ZipEntry(files[i].getName()));
+			byte[] buffer = new byte[2048];
+			FileInputStream fis = new FileInputStream(file);
+			zos.putNextEntry(new ZipEntry(standardizedFilename));
 
-        int length;
-        while ((length = fis.read(buffer)) > 0) {
-          zos.write(buffer, 0, length);
-        }
+			int length;
+			while ((length = fis.read(buffer)) > 0)
+			{
+				zos.write(buffer, 0, length);
+			}
 
-        zos.closeEntry();
-        fis.close();
+			zos.closeEntry();
+			fis.close();
 
-      } catch (IOException ioe) {
-        publish("IOException :" + ioe);
-      }
-
-    }
-  }
+		} catch (IOException ioe)
+		{
+			publish("IOException :" + ioe);
+		}
+	}
 
 }
