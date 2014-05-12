@@ -10,19 +10,15 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 /**
  * User: dgreen
  * Date: 15/03/2014
  */
-public class DirectoryPublishTask extends SwingWorker<Integer, String> {
+public class DirectoryPublishTask extends SwingWorker<Integer, String> implements Publisher {
   File      articleDir;
   JTextPane ta;
   JLabel statusLabel;
@@ -133,9 +129,11 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     statusMessage("NameCheck");
 
 	  sectionMessage("Analyzing filenames.");
+	  ArticleDirectory articleDirectory;
 	  try
 	  {
-		  String statusMsg = IngestUtilities.analyzeFilenames(Arrays.asList(articleDir.list()));
+		  articleDirectory = new ArticleDirectory(articleDir, this);
+		  String statusMsg = articleDirectory.analyzeFilenames();
 		  publish(statusMsg);
 	  }
 	  catch (RuntimeException e)
@@ -151,8 +149,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     statusMessage("Compressing");
     sectionMessage("Zipping directory contents for upload.");
 
-	  List<String> filenames = IngestUtilities.getFilenamesToZip(Arrays.asList(articleDir.list()));
-	  File result = zipDir(articleDir, filenames);
+	  File result = articleDirectory.BuildZipFile();
 
     if (result == null) {
       errorMessage("failed to zip input[" + result + "]");
@@ -163,10 +160,11 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     statusMessage("Uploading");
     sectionMessage("Uploading to server.");
     pb.setVisible(true);
-    String articleID = getIdFromFileConsensus(articleDir);
 
     long unixTime = System.currentTimeMillis() / 1000L;
     String timestamp = String.valueOf(unixTime);
+
+	  String articleID = articleDirectory.getArticleID();
 
     int resultCode = uploadFile(result, timestamp + "_" + articleID);
     if (resultCode != 0) {
@@ -232,110 +230,6 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     return job.getCode();
   }
 
-
-	private String getIdFromFileConsensus(File theDir) {
-    for (File f : theDir.listFiles()) {
-      if (f.isFile()) {
-        String name = f.getName();
-        if (name.matches("elementa\\.\\d\\d\\d\\d\\d\\d\\.xml")) {
-          return name.substring(9, 15);
-        }
-      }
-    }
-    return null;
-  }
-
-
-  private boolean filesViolateNaming(File theDir) {
-
-    // locate primary xml and take article prefix from it
-    String prefix = "";
-    boolean hasEPUB = false;
-    boolean hasMOBI = false;
-    boolean hasPDF = false;
-    boolean hasJSON = false;
-
-    for (File f : theDir.listFiles()) {
-      if (f.isFile()) {
-        String name = f.getName();
-        if (name.matches("elementa\\.\\d\\d\\d\\d\\d\\d\\.xml")) {
-          prefix = name.substring(0, 15);
-        }
-      }
-    }
-
-    if (prefix == "") {
-      errorMessage("No main XML found.");
-      return true;
-    }
-
-    // each item in submission must be a file and have a name beginning with common prefix "elementa.xxxxxx"
-    for (File f : theDir.listFiles()) {
-      // . invisible get a free pass
-      String name = f.getName();
-      if (name.startsWith(".")) {
-        continue;
-      }
-
-      if (f.isDirectory()) {
-        errorMessage("Submission cannot have sub-directories [" + f.getName() + "]");
-        return true;
-      }
-
-      if (!name.startsWith(prefix)) {
-        errorMessage("File found with mis-matching name prefix [" + name + "] prefix=" + prefix);
-        return true;
-      } else {
-        if (name.length() < 16) {
-          errorMessage("File found with no file type [" + name + "]");
-          return true;
-        }
-
-        String tail = name.substring(15);
-        if (tail.equals(".xml")) {
-          // xml gets a free pass
-        } else if (tail.equals(".epub")) {
-          hasEPUB = true;
-        } else if (tail.equals(".mobi")) {
-          hasMOBI = true;
-        } else if (tail.equals(".pdf")) {
-          hasPDF = true;
-        } else if (tail.equals(".json")) {
-          hasJSON = true;
-        } else if (tail.matches("\\.e\\d\\d\\d\\.tif")) {
-          // equation
-        } else if (tail.matches("\\.f\\d\\d\\d\\.tif")) {
-          // figure
-        } else if (tail.matches("\\.t\\d\\d\\d\\.tif")) {
-          // its a table image
-        } else if (tail.matches("\\.s\\d\\d\\d\\..*")) {
-          // its a supplemental
-        } else {
-          errorMessage("Directory contains file that is not a supported type [" + f.getAbsoluteFile() + "]");
-          publish("Files must be either epub,mobi,pdf,json,xml, or tif or supplemental sXXX.*");
-          return true;
-        }
-      }
-
-    }
-
-    if (!hasEPUB) {
-      warningMessage("No elmenta.xxxxxx.epub present in package.");
-    }
-    if (!hasPDF) {
-      warningMessage("No elmenta.xxxxxx.pdf present in package.");
-    }
-    if (!hasJSON) {
-      warningMessage("No elmenta.xxxxxx.json present in package.");
-    }
-    if (!hasMOBI) {
-      warningMessage("No elmenta.xxxxxx.mobi present in package.");
-    }
-
-    return false;
-  }
-
-
   public int uploadFile(File f, String destName) {
     ProgressListener progressListener = new ProgressListener() {
       @Override
@@ -370,84 +264,9 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> {
     }
   }
 
-	public File zipDir(File directory, List<String> filenames)
+
+	public void publishMessage(String message)
 	{
-		File result = null;
-		try
-		{
-			File temp = File.createTempFile("AmbraUploader", ".zip");
-//			temp.deleteOnExit();
-
-			FileOutputStream fos = new FileOutputStream(temp);
-			ZipOutputStream zos = new ZipOutputStream(fos);
-			zos.setLevel(9);
-
-			addDirToArchive(zos, directory, filenames);
-
-			// close the ZipOutputStream
-			zos.close();
-			result = temp;
-		} catch (IOException ioe)
-		{
-			publish("Error creating zip file: " + ioe);
-		}
-		return result;
+		publish(message);
 	}
-
-	private void addDirToArchive(ZipOutputStream zos, File directory, List<String> filenamesToZip)
-	{
-		publish("Zipping directory: \"" + directory.getName() + "\"");
-		publish("<br>");
-
-		Set<String> ignoredFilenames = new HashSet<String>();
-		for (String filename : directory.list())
-		{
-			if (filenamesToZip.contains(filename))
-			{
-				ZipFile(zos, directory, filename);
-			}
-			else
-			{
-				ignoredFilenames.add(filename);
-			}
-		}
-
-		publish("<br>");
-		for (String filename : ignoredFilenames)
-		{
-			publish("Ignoring file: \"" + filename + "\"");
-
-		}
-	}
-
-	private void ZipFile(ZipOutputStream zos, File directory, String filenameToZip)
-	{
-		try
-		{
-			String standardizedFilename = IngestUtilities.makeZipFilename (filenameToZip);
-
-			publish("Adding file: \"" + filenameToZip + "\".");
-
-			String fullPath = directory.getAbsolutePath() + File.separator + filenameToZip;
-			File file = new File(fullPath);
-
-			byte[] buffer = new byte[2048];
-			FileInputStream fis = new FileInputStream(file);
-			zos.putNextEntry(new ZipEntry(standardizedFilename));
-
-			int length;
-			while ((length = fis.read(buffer)) > 0)
-			{
-				zos.write(buffer, 0, length);
-			}
-
-			zos.closeEntry();
-			fis.close();
-
-		} catch (IOException ioe)
-		{
-			publish("IOException :" + ioe);
-		}
-	}
-
 }
