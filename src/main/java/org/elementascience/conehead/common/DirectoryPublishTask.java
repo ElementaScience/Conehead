@@ -23,14 +23,14 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
   JTextPane ta;
   JLabel statusLabel;
 
-  private UploadService serv;
+  private UploadService uploadService;
   private JProgressBar  pb;
   private Upload        upload;
-  private volatile String        tstamp;
-  private volatile String aID;
+  private volatile String timestamp;
+  private volatile String articleID;
 
-  public DirectoryPublishTask(UploadService serv, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection) {
-    this.serv = serv;
+  public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection) {
+    this.uploadService = uploadService;
     pb = progressBar1;
     statusLabel = label;
     articleDir = theSelection;
@@ -83,7 +83,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
       } catch (BadLocationException e) {
         e.printStackTrace();
       }
-      int resultCode = serv.registerPackage(tstamp, aID, result, text);
+      int resultCode = uploadService.registerPackage(timestamp, articleID, result, text);
 
     } catch (InterruptedException e) {
       e.printStackTrace();
@@ -94,7 +94,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
   }
 
   void statusMessage(String msg) {
-    publish("status"+msg);
+    publish("status" + msg);
   }
 
   void sectionMessage(String msg) {
@@ -110,7 +110,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
   }
 
   @Override
-  protected Integer doInBackground() {
+  protected Integer doInBackground() throws InterruptedException
+  {
 
     if (articleDir == null) {
       errorMessage("Invalid input directory [null].");
@@ -165,72 +166,116 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
     String timestamp = String.valueOf(unixTime);
 
 	  String articleID = articleDirectory.getArticleID();
+	  String jobName = timestamp + "_" + articleID;
+	  publish("Job Name: " + jobName);
 
-    int resultCode = uploadFile(result, timestamp + "_" + articleID);
+    int resultCode = uploadFile(result, jobName);
     if (resultCode != 0) {
       errorMessage("Upload failed[" + result.getName() + "]");
       return 1;
     } else {
-      publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds." );
+      publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds.");
     }
 
     statusMessage("Queueing");
-    sectionMessage("Notify minion to prep and stage article.");
-    resultCode = serv.notifyMinion(timestamp, articleID);
+    sectionMessage("Notifying server to prepare and load article.");
+    resultCode = uploadService.notifyMinion(jobName);
     if (resultCode != 0) {
-      errorMessage("queue insertion failed[" + timestamp + "_" + articleID + "]");
+      errorMessage("queue insertion failed[" + jobName + "]");
       return 1;
     }
 
-    statusMessage("Awaiting service");
-    UploadService.IngestJob job = null;
+	  UploadService.IngestJob job = waitForJobToAppear(jobName);
 
-    int state = 0;
+	  JobState js = JobState.valueOf(job.getState());
+	  statusMessage(job.getState());
 
-    while (null == job) {
-      long mill = System.currentTimeMillis();
-      while (System.currentTimeMillis() - 2000 < mill);
-      job = serv.getJob(timestamp + "_" + articleID);
-    }
+	  publishJobOutput(job);
 
-    JobState js = JobState.valueOf(job.getState());
-    statusMessage(job.getState());
-    JobState oldState = js;
+	  job = monitorJobProgress(jobName, job, js);
 
-    sectionMessage("Phase: " + job.getState() + " complete.");
-    publish("Result code=" + String.valueOf(job.getCode()));
-    publish("Output from process:");
-    for (String item : job.getReport().split("\n")) {
-      publish(item);
-    }
-
-    while (!js.equals(JobState.PUBLISHED) && job.getCode() == 0) {
-      long mill = System.currentTimeMillis();
-      while (System.currentTimeMillis() - 1000 < mill);
-      System.out.println("query");
-      job = serv.getJob(timestamp + "_" + articleID);
-
-      js = JobState.valueOf(job.getState());
-      if (oldState != js) {
-        statusMessage(job.getState());
-
-        sectionMessage("Phase: " + job.getState() + " complete.");
-        publish("Result code=" + String.valueOf(job.getCode()));
-        publish("Output from process:");
-        for (String item : job.getReport().split("\n")) {
-          publish(item);
-        }
-
-        oldState = js;
-      }
-    }
-
-    this.tstamp = timestamp;
-    this.aID = articleID;
-    return job.getCode();
+	  this.timestamp = timestamp;
+	  this.articleID = articleID;
+	  return job.getCode();
   }
 
-  public int uploadFile(File f, String destName) {
+	private UploadService.IngestJob monitorJobProgress(String jobName, UploadService.IngestJob job, JobState oldState) throws InterruptedException
+	{
+		JobState jobState = oldState;
+		while (!jobState.equals(JobState.PUBLISHING) && wasSuccessful(job))
+		{
+			Thread.sleep(1000);
+
+			System.out.println("Querying job status...");
+			job = uploadService.getJob(jobName);
+
+			jobState = job.getJobState();
+			if (oldState != jobState)
+			{
+				publishJobOutput(job);
+				oldState = jobState;
+			}
+		}
+		return job;
+	}
+
+	private void publishJobOutput(UploadService.IngestJob job)
+	{
+		JobState jobState = job.getJobState();
+		sectionMessage("Phase: " + jobState + " complete.");
+
+		if (wasSuccessful(job))
+		{
+			publish("This phase completed successfully.");
+		}
+		else
+		{
+			publish("This phase encountered an error.");
+		}
+
+
+		String jobOutput = job.getReport();
+		if (jobOutput.length() > 0)
+		{
+			publish("Detailed output from this phase: <br><br>");
+			for (String item : jobOutput.split("\n"))
+			{
+				publish(item);
+			}
+		}
+		else
+		{
+			publish("No detailed output from this phase.");
+		}
+
+		JobState nextState = jobState.next();
+		if (nextState != null)
+		{
+			sectionMessage("Starting phase: " + nextState + ".");
+		}
+
+	}
+
+	private boolean wasSuccessful(UploadService.IngestJob job)
+	{
+		return job.getCode() == 0;
+	}
+
+	private UploadService.IngestJob waitForJobToAppear(String jobName) throws InterruptedException
+	{
+		statusMessage("Awaiting service");
+		UploadService.IngestJob job = null;
+
+		while (null == job)
+		{
+			System.out.println("Querying job status: waiting for job to appear.");
+			Thread.sleep(1000);
+			job = uploadService.getJob(jobName);
+		}
+		return job;
+	}
+
+	public int uploadFile(File f, String destName) {
     ProgressListener progressListener = new ProgressListener() {
       @Override
       public void progressChanged(ProgressEvent progressEvent) {
@@ -254,7 +299,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
       }
     };
 
-    upload = serv.uploadWithListener(f, destName, progressListener);
+    upload = uploadService.uploadWithListener(f, destName, progressListener);
     try {
       upload.waitForCompletion();
       return 0;

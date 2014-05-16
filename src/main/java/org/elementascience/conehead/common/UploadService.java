@@ -37,8 +37,9 @@ public class UploadService {
 
   private String bucketName;
   private String registryName;
+	private int maxAttributeLength = 1024;
 
-  UploadService(Configuration i_config) {
+	UploadService(Configuration i_config) {
     config = i_config;
     BasicAWSCredentials creds = new BasicAWSCredentials(config.getString("accessKey"), config.getString("secretKey"));
     Region usEast1 = Region.getRegion(Regions.US_EAST_1);
@@ -175,27 +176,27 @@ public class UploadService {
     }
   }
 
-  public int registerPackage(String tstamp, String id, int opRes, String opRep) {
+  public int registerPackage(String timestamp, String articleID, int opRes, String opRep) {
     int result = 0;
 
     try {
       List<ReplaceableAttribute> attrs = new ArrayList<ReplaceableAttribute>();
       attrs.add(new ReplaceableAttribute("state", JobState.NEW.toString() , true));
-      attrs.add(new ReplaceableAttribute("timestamp", tstamp, true));
-      attrs.add(new ReplaceableAttribute("article", id, true));
+      attrs.add(new ReplaceableAttribute("timestamp", timestamp, true));
+      attrs.add(new ReplaceableAttribute("article", articleID, true));
       attrs.add(new ReplaceableAttribute("new_res", String.valueOf(opRes), true));
-      attrs.add(new ReplaceableAttribute("new_rep", opRep, true));
+      attrs.add(new ReplaceableAttribute("new_rep", opRep.substring(0, maxAttributeLength-1), true));
 
       PutAttributesRequest request = new PutAttributesRequest()
           .withDomainName(registryName)
           .withAttributes(attrs)
-          .withItemName(tstamp + "_" + id);
+          .withItemName(timestamp + "_" + articleID);
 
       sdb.putAttributes(request);
 
     } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Reponse Status Code: " + ase.getStatusCode());
+      System.out.println("Caught Exception [register package]: " + ase.getMessage());
+      System.out.println("Response Status Code: " + ase.getStatusCode());
       System.out.println("Error Code: " + ase.getErrorCode());
       System.out.println("Request ID: " + ase.getRequestId());
       result = 1;
@@ -220,7 +221,7 @@ public class UploadService {
 
     } catch (AmazonServiceException ase) {
       System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Reponse Status Code: " + ase.getStatusCode());
+      System.out.println("Response Status Code: " + ase.getStatusCode());
       System.out.println("Error Code: " + ase.getErrorCode());
       System.out.println("Request ID: " + ase.getRequestId());
       returnVal = 1;
@@ -230,16 +231,16 @@ public class UploadService {
   }
 
 
-  public int notifyMinion(String timestamp, String articleID) {
+  public int notifyMinion(String jobName) {
     int result = 0;
     try {
-      SendMessageRequest mRequest = new SendMessageRequest(queueURL, timestamp + "_" + articleID);
+      SendMessageRequest mRequest = new SendMessageRequest(queueURL, jobName);
 
       SendMessageResult sendMessageResult = sqs.sendMessage(mRequest);
       sendMessageResult.getMessageId();
     } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Reponse Status Code: " + ase.getStatusCode());
+      System.out.println("Caught Exception [notifyMinion]: " + ase.getMessage());
+      System.out.println("Response Status Code: " + ase.getStatusCode());
       System.out.println("Error Code: " + ase.getErrorCode());
       System.out.println("Request ID: " + ase.getRequestId());
       result = 1;
@@ -282,29 +283,8 @@ public class UploadService {
       }
 
     } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Reponse Status Code: " + ase.getStatusCode());
-      System.out.println("Error Code: " + ase.getErrorCode());
-      System.out.println("Request ID: " + ase.getRequestId());
-    }
-
-    return result;
-  }
-
-  public List<IngestJob> getJobs() {
-    ArrayList<IngestJob> result = new ArrayList<IngestJob>();
-
-    try {
-      SelectRequest sr = new SelectRequest().withSelectExpression("select * from " + registryName);
-      SelectResult jobs = sdb.select(sr);
-
-      for (Item job : jobs.getItems() ) {
-        result.add(new IngestJob(job.getName(), job.getAttributes()));
-      }
-
-    } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Reponse Status Code: " + ase.getStatusCode());
+      System.out.println("Caught Exception [getJob]: " + ase.getMessage());
+      System.out.println("Response Status Code: " + ase.getStatusCode());
       System.out.println("Error Code: " + ase.getErrorCode());
       System.out.println("Request ID: " + ase.getRequestId());
     }
@@ -369,8 +349,13 @@ public class UploadService {
       return name;
     }
 
+	 public JobState getJobState()
+	 {
+		 return state;
+	 }
+
     public String getState() {
-      return state.toString();
+      return getJobState().toString();
     }
 
     public int getCode() {

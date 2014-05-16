@@ -71,7 +71,7 @@ public class Minion {
         System.out.println("downloading item Article: " +  articleNumber + " timestamp: " + timestamp);
         File outputFile = new File("/var/local/ingest/hold", msg.getBody() + ".zip");
         int downloadRes = serv.downloadFile(msg.getBody(), outputFile);
-        serv.updatePackageStatus(msg.getBody(), JobState.UNPACKED, downloadRes, "");
+        serv.updatePackageStatus(msg.getBody(), JobState.UNPACKING, downloadRes, "");
 
 
         if (downloadRes == 0) {
@@ -79,7 +79,7 @@ public class Minion {
           serv.deleteFile(msg.getBody());
 
           ArticlePreparer.OpResult opResult = prep.doOne(timestamp, articleNumber);
-          serv.updatePackageStatus(msg.getBody(), JobState.PREPARED, opResult.result, opResult.message);
+          serv.updatePackageStatus(msg.getBody(), JobState.PREPARING, opResult.result, opResult.message);
 
           if (opResult.result == 0) {
             // TODO use file operator to do this
@@ -90,12 +90,12 @@ public class Minion {
 
               System.out.println("ingesting package :" + articleNumber);
               int ingestResult = RhinoSubmitter.attemptIngest(articleNumber);
-              serv.updatePackageStatus(msg.getBody(), JobState.INGESTED, ingestResult, "");
+              serv.updatePackageStatus(msg.getBody(), JobState.INGESTING, ingestResult, "");
 
               if (ingestResult == 0) {
                 System.out.println("Publish article :" + articleNumber);
                 int finalCode = RhinoSubmitter.publish(articleNumber);
-                serv.updatePackageStatus(msg.getBody(), JobState.PUBLISHED, finalCode, "");
+                serv.updatePackageStatus(msg.getBody(), JobState.PUBLISHING, finalCode, "");
 
                 if (finalCode == 0) {
                   System.out.println("article is now fully published");
