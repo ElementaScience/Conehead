@@ -1,6 +1,7 @@
 package org.elementascience.conehead.common;
 
 import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -9,9 +10,10 @@ import javax.swing.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -52,46 +54,95 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
     for (String msg : chunks) {
       if (msg.startsWith("status")) {
         statusLabel.setText(msg.substring(6));
-      } else {
-        try {
-            editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+      }
+      else
+      {
+	      try
+	      {
+		      editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
+		      scrollToBottom();
+	      }
+	      catch (BadLocationException e)
+	      {
+		      e.printStackTrace();
+	      }
+	      catch (IOException e)
+	      {
+		      e.printStackTrace();
+	      }
       }
     }
   }
 
-  @Override
-  protected void done() {
-    try {
-      Integer result = get();
+	private void scrollToBottom()
+	{
+		EventQueue.invokeLater(new Runnable()
+		{
+			public void run()
+			{
+				EventQueue.invokeLater(new Runnable()
+				{
+					public void run()
+					{
+						scrollToBottom(ta);
+					}
+				});
+			}
+		});
+	}
 
-      if (result == 0) {
-        sectionMessage("Job completed successfully");
-      } else {
-        errorMessage("Job failed:  return code = " + result + "\n");
-      }
+	public static void scrollToBottom(JComponent component) {
+		Rectangle visibleRect = component.getVisibleRect();
+		visibleRect.y = component.getHeight() - visibleRect.height;
+		component.scrollRectToVisible(visibleRect);
+	}
 
-      HTMLDocument doc = (HTMLDocument) ta.getDocument();
-      HTMLEditorKit editorKit = (HTMLEditorKit) ta.getEditorKit();
-      String text = "";
-      try {
-        text = doc.getText(0, doc.getLength());
-      } catch (BadLocationException e) {
-        e.printStackTrace();
-      }
-      int resultCode = uploadService.registerPackage(timestamp, articleID, result, text);
 
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (ExecutionException e) {
-      e.printStackTrace();
-    }
+	@Override
+	protected void done()
+	{
+		try
+		{
+			Integer result = get();
 
-  }
+			if (result == 0)
+			{
+				sectionMessage("Job completed successfully");
+				statusMessage("Processing complete.");
+
+				HTMLDocument doc = (HTMLDocument) ta.getDocument();
+				String text = "";
+				try
+				{
+					text = doc.getText(0, doc.getLength());
+				}
+				catch (BadLocationException e)
+				{
+					e.printStackTrace();
+				}
+				uploadService.registerPackage(timestamp, articleID, result, text);
+
+			}
+			else
+			{
+				errorMessage("Job failed:  return code = " + result + "\n");
+				statusMessage("Processing failed.");
+			}
+
+		}
+		catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+		catch (ExecutionException e)
+		{
+			e.printStackTrace();
+		}
+
+	}
+
+
+	// This keyword at the beginning updates the "Status" label as the top of the panel.
 
   void statusMessage(String msg) {
     publish("status" + msg);
@@ -112,6 +163,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
   @Override
   protected Integer doInBackground() throws InterruptedException
   {
+	  statusMessage("In Progress");
 
     if (articleDir == null) {
       errorMessage("Invalid input directory [null].");
@@ -127,7 +179,6 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
       errorMessage("Input directory is not actually a directory. [" + articleDir.getAbsolutePath() + "]");
       return 1;
     }
-    statusMessage("NameCheck");
 
 	  sectionMessage("Analyzing filenames.");
 	  ArticleDirectory articleDirectory;
@@ -146,9 +197,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
     //TODO Must implement graphic file validation
     // publish("\n<h2>Confirming filetypes.</h2>");
 
-    publish("\n\n");
-    statusMessage("Compressing");
-    sectionMessage("Zipping directory contents for upload.");
+	  sectionMessage("Zipping directory contents for upload.");
 
 	  File result = articleDirectory.BuildZipFile();
 
@@ -157,9 +206,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
       return 1;
     }
 
-    publish("\n\n");
-    statusMessage("Uploading");
-    sectionMessage("Uploading to server.");
+	  sectionMessage("Uploading to server.");
     pb.setVisible(true);
 
     long unixTime = System.currentTimeMillis() / 1000L;
@@ -177,8 +224,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
       publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds.");
     }
 
-    statusMessage("Queueing");
-    sectionMessage("Notifying server to prepare and load article.");
+	  sectionMessage("Notifying server to prepare and load article.");
     resultCode = uploadService.notifyMinion(jobName);
     if (resultCode != 0) {
       errorMessage("queue insertion failed[" + jobName + "]");
@@ -188,8 +234,6 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	  UploadService.IngestJob job = waitForJobToAppear(jobName);
 
 	  JobState js = JobState.valueOf(job.getState());
-	  statusMessage(job.getState());
-
 	  publishJobOutput(job);
 
 	  job = monitorJobProgress(jobName, job, js);
@@ -222,7 +266,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	private void publishJobOutput(UploadService.IngestJob job)
 	{
 		JobState jobState = job.getJobState();
-		sectionMessage("Phase: " + jobState + " complete.");
+		sectionMessage("Phase: " + jobState + " complete.\n");
 
 		if (wasSuccessful(job))
 		{
@@ -248,12 +292,14 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			publish("No detailed output from this phase.");
 		}
 
-		JobState nextState = jobState.next();
-		if (nextState != null)
+		if (wasSuccessful(job))
 		{
-			sectionMessage("Starting phase: " + nextState + ".");
+			JobState nextState = jobState.next();
+			if (nextState != null)
+			{
+				sectionMessage("Starting phase: " + nextState + ".");
+			}
 		}
-
 	}
 
 	private boolean wasSuccessful(UploadService.IngestJob job)
@@ -263,7 +309,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
 	private UploadService.IngestJob waitForJobToAppear(String jobName) throws InterruptedException
 	{
-		statusMessage("Awaiting service");
+		sectionMessage("Waiting for server.");
 		UploadService.IngestJob job = null;
 
 		while (null == job)
@@ -275,39 +321,70 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		return job;
 	}
 
-	public int uploadFile(File f, String destName) {
-    ProgressListener progressListener = new ProgressListener() {
-      @Override
-      public void progressChanged(ProgressEvent progressEvent) {
-        if (upload == null) return;
+	public int uploadFile(File f, String destName)
+	{
+		ProgressListener progressListener = new ProgressListener()
+		{
+			@Override
+			public void progressChanged(ProgressEvent progressEvent)
+			{
+				if (upload == null)
+				{
+					return;
+				}
 
-        pb.setValue((int) upload.getProgress().getPercentTransferred());
+				pb.setValue((int) upload.getProgress().getPercentTransferred());
 
-        switch (progressEvent.getEventCode()) {
-          case ProgressEvent.COMPLETED_EVENT_CODE:
-            pb.setValue(100);
-            pb.setVisible(false);
-            break;
-          case ProgressEvent.FAILED_EVENT_CODE:
-            try {
-              AmazonClientException e = upload.waitForException();
-              publish("Unable to upload file to Amazon S3: " + e.getMessage());
-            } catch (InterruptedException e) {}
-            break;
-        }
+				switch (progressEvent.getEventCode())
+				{
+					case ProgressEvent.COMPLETED_EVENT_CODE:
+						pb.setValue(100);
+						pb.setVisible(false);
+						break;
+					case ProgressEvent.FAILED_EVENT_CODE:
+						try
+						{
+							AmazonClientException e = upload.waitForException();
+							publish("Unable to upload file to Amazon S3: " + e.getMessage());
+							hideProgressBar();
+						}
+						catch (InterruptedException e)
+						{
+						}
+						break;
+				}
+			}
+		};
 
-      }
-    };
+		upload = uploadService.uploadWithListener(f, destName, progressListener);
+		try
+		{
+			upload.waitForCompletion();
+			return 0;
+		}
+		catch (InterruptedException e)
+		{
+			e.printStackTrace();
+			return 1;
+		}
+		catch (AmazonServiceException e)
+		{
+			System.out.println("Amazon Service Exception");
+			e.printStackTrace();
+			return 1;
+		}
+		catch (AmazonClientException e)
+		{
+			System.out.println("Amazon Client Exception");
+			e.printStackTrace();
+			return 1;
+		}
+	}
 
-    upload = uploadService.uploadWithListener(f, destName, progressListener);
-    try {
-      upload.waitForCompletion();
-      return 0;
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-      return 1;
-    }
-  }
+	private void hideProgressBar()
+	{
+		pb.setVisible(false);
+	}
 
 
 	public void publishMessage(String message)
