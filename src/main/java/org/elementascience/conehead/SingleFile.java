@@ -6,12 +6,16 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 
@@ -22,24 +26,63 @@ import java.util.List;
 public class SingleFile {
   UploadService serv;
 
-  private JTextPane    progressTextPane;
+  private JTextPane progressTextPane;
   private JButton      selectFileButton;
   private JPanel       jpanel1;
   private JLabel       dirNameLabel;
   private JProgressBar progressBar1;
   private JLabel statusLabel;
   private JFrame frame;
+	private String publishedURLPrefix;
 
-  public SingleFile() {
-    ApplicationContext context = new ClassPathXmlApplicationContext("spring-config.xml");
-    serv = context.getBean("service", UploadService.class);
+	public SingleFile()
+	{
+		ApplicationContext context = new ClassPathXmlApplicationContext("spring-config.xml");
+		serv = context.getBean("service", UploadService.class);
+		publishedURLPrefix = (String) context.getBean("publishedURLPrefix");
 
-    selectFileButton.addActionListener(new UploadButtonListener());
-    progressTextPane.setContentType("text/html");
+		selectFileButton.addActionListener(new UploadButtonListener());
+		progressTextPane.setContentType("text/html");
 
-  }
+		installHyperlinkListener();
+	}
 
-  public static void main(String[] args) {
+	private void installHyperlinkListener()
+	{
+		progressTextPane.setEditable(false);
+
+		ToolTipManager.sharedInstance().registerComponent(progressTextPane);
+		HyperlinkListener hyperlinkListener = new HyperlinkListener()
+		{
+			@Override
+			public void hyperlinkUpdate(HyperlinkEvent e)
+			{
+				if (HyperlinkEvent.EventType.ACTIVATED == e.getEventType())
+				{
+					try
+					{
+						if (Desktop.isDesktopSupported())
+						{
+							Desktop.getDesktop().browse(e.getURL().toURI());
+						}
+					}
+					catch (IOException e1)
+					{
+						e1.printStackTrace();
+					}
+					catch (URISyntaxException e1)
+					{
+						e1.printStackTrace();
+					}
+				}
+
+			}
+
+		};
+		progressTextPane.addHyperlinkListener(hyperlinkListener);
+	}
+
+	public static void main(String[] args) {
 
     new SingleFile().run();
 
@@ -84,7 +127,7 @@ public class SingleFile {
       dirNameLabel.setText(name);
 
       display(Collections.singletonList("Directory set for upload: " + name + "\n"));
-      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile());
+      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix);
       task.execute();
     }
 

@@ -30,14 +30,16 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
   private Upload        upload;
   private volatile String timestamp;
   private volatile String articleID;
+	private String publishedURLPrefix;
 
-  public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection) {
+  public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection, String publishedURLPrefix) {
     this.uploadService = uploadService;
     pb = progressBar1;
     statusLabel = label;
     articleDir = theSelection;
     ta = textPane;
     upload = null;
+	  this.publishedURLPrefix = publishedURLPrefix;
 
     HTMLDocument doc = (HTMLDocument) ta.getDocument();
 //    try {
@@ -89,7 +91,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
 			if (result == 0)
 			{
-				sectionMessage("Job completed successfully");
+				sectionMessage("Job completed successfully; view article <a href=\"" + publishedURLPrefix + articleID + "\">here.</a>");
 				statusMessage("Processing complete.");
 			}
 			else
