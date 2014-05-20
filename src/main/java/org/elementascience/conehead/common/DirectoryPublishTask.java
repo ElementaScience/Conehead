@@ -60,7 +60,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	      try
 	      {
 		      editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
-		      scrollToBottom();
+		      scrollToBottom(ta);
 	      }
 	      catch (BadLocationException e)
 	      {
@@ -74,29 +74,11 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
     }
   }
 
-	private void scrollToBottom()
-	{
-		EventQueue.invokeLater(new Runnable()
-		{
-			public void run()
-			{
-				EventQueue.invokeLater(new Runnable()
-				{
-					public void run()
-					{
-						scrollToBottom(ta);
-					}
-				});
-			}
-		});
-	}
-
 	public static void scrollToBottom(JComponent component) {
 		Rectangle visibleRect = component.getVisibleRect();
 		visibleRect.y = component.getHeight() - visibleRect.height;
 		component.scrollRectToVisible(visibleRect);
 	}
-
 
 	@Override
 	protected void done()
@@ -109,19 +91,6 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			{
 				sectionMessage("Job completed successfully");
 				statusMessage("Processing complete.");
-
-				HTMLDocument doc = (HTMLDocument) ta.getDocument();
-				String text = "";
-				try
-				{
-					text = doc.getText(0, doc.getLength());
-				}
-				catch (BadLocationException e)
-				{
-					e.printStackTrace();
-				}
-				uploadService.registerPackage(timestamp, articleID, result, text);
-
 			}
 			else
 			{
@@ -129,6 +98,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 				statusMessage("Processing failed.");
 			}
 
+			logResultsToAWSSimpleDB(result);
 		}
 		catch (InterruptedException e)
 		{
@@ -139,6 +109,22 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			e.printStackTrace();
 		}
 
+		publish("<hr>");
+	}
+
+	private void logResultsToAWSSimpleDB(Integer result)
+	{
+		HTMLDocument doc = (HTMLDocument) ta.getDocument();
+		String text = "";
+		try
+		{
+			text = doc.getText(0, doc.getLength());
+		}
+		catch (BadLocationException e)
+		{
+			e.printStackTrace();
+		}
+		uploadService.registerPackage(timestamp, articleID, result, text);
 	}
 
 
