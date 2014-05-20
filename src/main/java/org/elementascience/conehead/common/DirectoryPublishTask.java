@@ -98,7 +98,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 				statusMessage("Processing failed.");
 			}
 
-			logResultsToAWSSimpleDB(result);
+			logResultsToRegistry(result);
 		}
 		catch (InterruptedException e)
 		{
@@ -112,7 +112,13 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		publish("<hr>");
 	}
 
-	private void logResultsToAWSSimpleDB(Integer result)
+	private void logResultsToRegistry(Integer result)
+	{
+		String text = getDocumentText();
+		logToRegistry(result, text);
+	}
+
+	private String getDocumentText()
 	{
 		HTMLDocument doc = (HTMLDocument) ta.getDocument();
 		String text = "";
@@ -124,7 +130,23 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		{
 			e.printStackTrace();
 		}
-		uploadService.registerPackage(timestamp, articleID, result, text);
+		return text;
+	}
+
+	private void logToRegistry(Integer result, String text)
+	{
+		int iteration = 0;
+		int index = 0;
+		int lengthToLog = Math.min(1024, text.substring(index).length());
+		do
+		{
+			String key = timestamp + "_" + articleID;
+			uploadService.logFinalState(key, result, text.substring(index, index + lengthToLog), iteration++);
+
+			index += lengthToLog;
+			lengthToLog = Math.min(1024, text.substring(index).length());
+
+		} while (lengthToLog > 0);
 	}
 
 

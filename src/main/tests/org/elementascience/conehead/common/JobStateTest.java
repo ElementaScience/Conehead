@@ -10,7 +10,7 @@ public class JobStateTest
 	public void checkNext()
 	{
 		Assert.assertEquals(JobState.ONDECK, JobState.NEW.next());
-		Assert.assertEquals(null, JobState.PUBLISHING.next());
+		Assert.assertEquals(null, JobState.FINAL.next());
 	}
 
 }

@@ -220,18 +220,48 @@ public class UploadService {
       sdb.putAttributes(request);
 
     } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception: " + ase.getMessage());
-      System.out.println("Response Status Code: " + ase.getStatusCode());
-      System.out.println("Error Code: " + ase.getErrorCode());
-      System.out.println("Request ID: " + ase.getRequestId());
+	    printExceptionInfo(ase);
       returnVal = 1;
     }
 
     return returnVal;
   }
 
+	public int logFinalState(String key, Integer result, String report, Integer suffix)
+	{
+		int returnVal = 0;
+		JobState newStatus = JobState.FINAL;
 
-  public int notifyMinion(String jobName) {
+		try
+		{
+			ArrayList<ReplaceableAttribute> attrs = new ArrayList<ReplaceableAttribute>();
+			attrs.add(new ReplaceableAttribute("state", newStatus.toString(), true));
+			attrs.add(new ReplaceableAttribute(newStatus + "_res_" + suffix, String.valueOf(result), true));
+			attrs.add(new ReplaceableAttribute(newStatus + "_rep_" + suffix, report, true));
+
+			PutAttributesRequest request = new PutAttributesRequest().withDomainName(registryName).withAttributes(attrs).withItemName(key);
+			sdb.putAttributes(request);
+		}
+
+		catch (AmazonServiceException ase)
+		{
+			printExceptionInfo(ase);
+			returnVal = 1;
+		}
+
+		return returnVal;
+	}
+
+	private void printExceptionInfo(AmazonServiceException ase)
+	{
+		System.out.println("Caught Exception: " + ase.getMessage());
+		System.out.println("Response Status Code: " + ase.getStatusCode());
+		System.out.println("Error Code: " + ase.getErrorCode());
+		System.out.println("Request ID: " + ase.getRequestId());
+	}
+
+
+	public int notifyMinion(String jobName) {
     int result = 0;
     try {
       SendMessageRequest mRequest = new SendMessageRequest(queueURL, jobName);
@@ -239,10 +269,7 @@ public class UploadService {
       SendMessageResult sendMessageResult = sqs.sendMessage(mRequest);
       sendMessageResult.getMessageId();
     } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception [notifyMinion]: " + ase.getMessage());
-      System.out.println("Response Status Code: " + ase.getStatusCode());
-      System.out.println("Error Code: " + ase.getErrorCode());
-      System.out.println("Request ID: " + ase.getRequestId());
+	    printExceptionInfo(ase);
       result = 1;
     }
     return result;
@@ -283,10 +310,7 @@ public class UploadService {
       }
 
     } catch (AmazonServiceException ase) {
-      System.out.println("Caught Exception [getJob]: " + ase.getMessage());
-      System.out.println("Response Status Code: " + ase.getStatusCode());
-      System.out.println("Error Code: " + ase.getErrorCode());
-      System.out.println("Request ID: " + ase.getRequestId());
+	    printExceptionInfo(ase);
     }
 
     return result;
