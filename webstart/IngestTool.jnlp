@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.0+" codebase="http://staging.elementascience.org/ingest" href="IngestTool.jnlp">
+
+  <information>
+    <title>IngestTool</title>
+    <vendor>Elementa Science</vendor>
+    <homepage href="http://staging.elementascience.org/" />
+    <description>application that can upload article content to an Elementa server</description>
+  </information>
+
+  <security>
+    <all-permissions/>
+  </security>
+
+  <resources>
+    <j2se version="1.6+" />
+    <jar href="ch.jar" main="true" />
+    <jar href="aopalliance-1.0.jar" />
+    <jar href="aws-java-sdk-1.7.3.jar" />
+    <jar href="commons-beanutils-1.7.0.jar" />
+    <jar href="commons-beanutils-core-1.8.0.jar" />
+    <jar href="commons-cli-1.2.jar" />
+    <jar href="commons-codec-1.3.jar" />
+    <jar href="commons-collections-3.2.1.jar" />
+    <jar href="commons-configuration-1.6.jar" />
+    <jar href="commons-digester-1.8.jar" />
+    <jar href="commons-io-2.4.jar" />
+    <jar href="commons-lang-2.4.jar" />
+    <jar href="commons-logging-1.1.1.jar" />
+    <jar href="httpclient-4.2.jar" />
+    <jar href="httpcore-4.2.jar" />
+    <jar href="jackson-annotations-2.1.1.jar" />
+    <jar href="jackson-core-2.1.1.jar" />
+    <jar href="jackson-databind-2.1.1.jar" />
+    <jar href="jgoodies-forms.jar" />
+    <jar href="jgoodies-looks-2.4.2.jar" />
+    <jar href="joda-time-2.3.jar" />
+    <jar href="json-simple-1.1.1.jar" />
+    <jar href="log4j-1.2.17.jar" />
+    <jar href="slf4j-api-1.7.2.jar" />
+    <jar href="slf4j-log4j12-1.7.2.jar" />
+    <jar href="spring-aop-3.2.0.RELEASE.jar" />
+    <jar href="spring-beans-3.2.0.RELEASE.jar" />
+    <jar href="spring-context-3.2.0.RELEASE.jar" />
+    <jar href="spring-core-3.2.0.RELEASE.jar" />
+    <jar href="spring-expression-3.2.0.RELEASE.jar" />
+  </resources>
+
+  <application-desc main-class="org.elementascience.conehead.SingleFile" />
+</jnlp>
