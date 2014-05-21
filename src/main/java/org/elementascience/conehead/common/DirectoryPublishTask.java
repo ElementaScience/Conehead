@@ -20,61 +20,60 @@ import java.util.concurrent.ExecutionException;
  * User: dgreen
  * Date: 15/03/2014
  */
-public class DirectoryPublishTask extends SwingWorker<Integer, String> implements Publisher {
-  File      articleDir;
-  JTextPane ta;
-  JLabel statusLabel;
+public class DirectoryPublishTask extends SwingWorker<Integer, String> implements Publisher
+{
+	File articleDir;
+	JTextPane ta;
+	JLabel statusLabel;
 
-  private UploadService uploadService;
-  private JProgressBar  pb;
-  private Upload        upload;
-  private volatile String timestamp;
-  private volatile String articleID;
+	private UploadService uploadService;
+	private JProgressBar pb;
+	private Upload upload;
+	private volatile String timestamp;
+	private volatile String articleID;
 	private String publishedURLPrefix;
+	private JobState failedJobState;
 
-  public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection, String publishedURLPrefix) {
-    this.uploadService = uploadService;
-    pb = progressBar1;
-    statusLabel = label;
-    articleDir = theSelection;
-    ta = textPane;
-    upload = null;
-	  this.publishedURLPrefix = publishedURLPrefix;
+	public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection, String publishedURLPrefix)
+	{
+		this.uploadService = uploadService;
+		pb = progressBar1;
+		statusLabel = label;
+		articleDir = theSelection;
+		ta = textPane;
+		upload = null;
+		this.publishedURLPrefix = publishedURLPrefix;
+	}
 
-    HTMLDocument doc = (HTMLDocument) ta.getDocument();
-//    try {
-//      doc.replace(0, doc.getLength(), "", null);
-//    } catch (BadLocationException e) {
-//      e.printStackTrace();
-//    }
-  }
-
-  @Override
-  protected void process(List<String> chunks) {
-    HTMLDocument doc = (HTMLDocument) ta.getDocument();
-    HTMLEditorKit editorKit = (HTMLEditorKit) ta.getEditorKit();
-    for (String msg : chunks) {
-      if (msg.startsWith("status")) {
-        statusLabel.setText(msg.substring(6));
-      }
-      else
-      {
-	      try
-	      {
-		      editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
-		      scrollToBottom(ta);
-	      }
-	      catch (BadLocationException e)
-	      {
-		      e.printStackTrace();
-	      }
-	      catch (IOException e)
-	      {
-		      e.printStackTrace();
-	      }
-      }
-    }
-  }
+	@Override
+	protected void process(List<String> chunks)
+	{
+		HTMLDocument doc = (HTMLDocument) ta.getDocument();
+		HTMLEditorKit editorKit = (HTMLEditorKit) ta.getEditorKit();
+		for (String msg : chunks)
+		{
+			if (msg.startsWith("status"))
+			{
+				statusLabel.setText(msg.substring(6));
+			}
+			else
+			{
+				try
+				{
+					editorKit.insertHTML(doc, doc.getLength(), msg, 0, 0, null);
+					scrollToBottom(ta);
+				}
+				catch (BadLocationException e)
+				{
+					e.printStackTrace();
+				}
+				catch (IOException e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 
 	public static void scrollToBottom(JComponent component) {
 		Rectangle visibleRect = component.getVisibleRect();
@@ -91,12 +90,13 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
 			if (result == 0)
 			{
-				sectionMessage("Job completed successfully; view article <a href=\"" + publishedURLPrefix + articleID + "\">here.</a>");
+				sectionMessage("Ingest completed successfully; content published <a href=\"" + publishedURLPrefix + articleID + "\">here.</a>");
 				statusMessage("Processing complete.");
 			}
 			else
 			{
-				errorMessage("Job failed:  return code = " + result + "\n");
+				publishMessage("<br>");
+				errorMessage("Ingest failed in the " + failedJobState + " phase of processing. No content published.");
 				statusMessage("Processing failed.");
 			}
 
@@ -284,7 +284,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		}
 		else
 		{
-			publish("This phase encountered an error.");
+			errorMessage("This phase encountered an error.");
+			failedJobState = jobState;
 		}
 
 
@@ -294,7 +295,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			publish("Detailed output from this phase: <br><br>");
 			for (String item : jobOutput.split("\n"))
 			{
-				publish(item);
+				publish("<span style=\"color:#0011FF\">&nbsp;&nbsp;&nbsp;"  + item );
 			}
 		}
 		else

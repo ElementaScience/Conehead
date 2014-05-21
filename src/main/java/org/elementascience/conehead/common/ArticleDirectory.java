@@ -22,6 +22,10 @@ public class ArticleDirectory
 	static final String tifRegex = "[eft]\\d\\d\\d\\.tif";
 	static final String powerRankingRegex = "(_[A-Z]{1}\\d+)";        // power rankings are the "d" in the regex thus they *have* to be present
 	static final String elementIDRegex = "[sfet]\\d\\d\\d";
+	static final String validExtension = dotRegex + "[a-z]{3}";
+
+	static final String warningColor = "#461B7E";
+
 
 	static List<String> optionalExtensions = new ArrayList<String>();
 	static
@@ -162,7 +166,7 @@ public class ArticleDirectory
 			TreeMap<Integer, String> maps = new TreeMap<Integer, String>();
 			for (String filename : filenames)
 			{
-				String regex = prefix + revisionRegex + dotRegex + elementID + ".*";
+				String regex = prefix + revisionRegex + dotRegex + elementID + validExtension;
 				if (filename.matches(regex))
 				{
 					Integer powerRanking = getPowerRanking(filename);
@@ -248,7 +252,7 @@ public class ArticleDirectory
 
 		for (String extension : missingExtensions)
 		{
-			statusMsg += "<br><b><span style=\"color:#461B7E\">WARNING: </span></b> No \"" + extension + "\" file found.";
+			statusMsg += "<br><b><span style=\"color:" + warningColor + "\">WARNING: </span></b> No \"" + extension + "\" file found.";
 		}
 		return statusMsg;
 	}
@@ -352,7 +356,7 @@ public class ArticleDirectory
 		publisher.publishMessage("<br>");
 		for (String filename : ignoredFilenames)
 		{
-			publisher.publishMessage("Ignoring file: \"" + filename + "\"");
+			publisher.publishMessage("<b><span style=\"color:" + warningColor + "\">WARNING: </span></b>Ignoring file: \"" + filename + "\"");
 
 		}
 	}

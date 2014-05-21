@@ -527,6 +527,24 @@ public class ArticleDirectoryTest
 	}
 
 	@Test
+	public void testThatTIFFilesMustBeWellFormed() throws Exception
+	{
+		CreateFile("elementa.000017.xml");
+		CreateFile("elementa.000017.e123.tiffffff.tif");
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
+
+		String successMsg =
+				"Found article file: \"elementa.000017.xml\".<br>" +
+						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
+						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
+						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
+						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
+
+		String statusMsg = articleDir.analyzeFilenames();
+		Assert.assertEquals(successMsg, statusMsg);
+	}
+
+	@Test
 	public void testThatTIFFilesMustBeWellFormedBadPrefix() throws Exception
 	{
 		CreateFile("elementa.000017.xml");
@@ -667,6 +685,21 @@ public class ArticleDirectoryTest
 		CreateFile("elementa.000017.xml");
 		CreateFile("elementa.000017_V1.xml");
 		CreateFile(".Dogmeat");
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
+
+		List<String> expectedFilenames = new ArrayList<String>();
+		expectedFilenames.add("elementa.000017_V1.xml");
+
+		List<String> filesToZip = articleDir.getFilenamesToZip();
+		Assert.assertTrue(SameLists(expectedFilenames, filesToZip));
+	}
+
+	@Test
+	public void weShouldIgnoreMalformedNames() throws Exception
+	{
+		CreateFile("elementa.000017.xml");
+		CreateFile("elementa.000017_V1.xml");
+		CreateFile("elementa.000017.s123.tiffffff.tif");
 		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
 
 		List<String> expectedFilenames = new ArrayList<String>();
