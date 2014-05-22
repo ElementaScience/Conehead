@@ -14,6 +14,23 @@ import java.util.List;
 public class ArticleDirectoryTest
 {
 	private Path directory;
+	private TestPublisher testPublisher;
+
+	class TestPublisher implements Publisher
+	{
+		private String publishedMessage = "";
+
+		@Override
+		public void publishMessage(String message)
+		{
+			publishedMessage += message;
+		}
+
+		String getPublishedMessage()
+		{
+			return publishedMessage;
+		}
+	}
 
 	@Before
 	public void setUp() throws Exception
@@ -21,6 +38,7 @@ public class ArticleDirectoryTest
 		directory = Files.createTempDirectory("ArticleDirectoryTest");
 		directory.toFile().deleteOnExit();
 
+		testPublisher = new TestPublisher();
 	}
 
 	@Rule
@@ -193,490 +211,8 @@ public class ArticleDirectoryTest
 	}
 
 
-
-
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	// analyzeFilenames
-	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-	@Test
-	public void testSingleArticleFile() throws IOException
-	{
-		CreateFile("elementa.000017.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatSingleXMLFileWithRevisionIsOK() throws Exception
-	{
-		CreateFile("elementa.000017_V10.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017_V10.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatWeAllowMultipleVersionsOfXMLFile() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017_R1.xml");
-		CreateFile("elementa.000017_R99.xml");
-		CreateFile("elementa.000017_R732.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"Found article file: \"elementa.000017_R1.xml\".<br>" +
-						"Found article file: \"elementa.000017_R732.xml\".<br>" +
-						"Found article file: \"elementa.000017_R99.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	// The "non-matching" PDF file should be ignored and we'll report that no PDF file was included
-
-	@Test
-	public void testThatPrefixesOfDifferentTypeFilesAreTheSame() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.epub");
-		CreateFile("elementa.000017.json");
-		CreateFile("elementa.000017.mobi");
-		CreateFile("elementa.000018.pdf");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"Found \"epub\" file: \"elementa.000017.epub\".<br>" +
-						"Found \"json\" file: \"elementa.000017.json\".<br>" +
-						"Found \"mobi\" file: \"elementa.000017.mobi\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatWeDetectUnrecognizedFileTypes() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.dog");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	// All the files can include a "revision number" following the article number of the form "_[A-Z]<integer>"
-
-	@Test
-	public void testThatSingleXMLFileWithLegalRevisionIsOK() throws Exception
-	{
-		CreateFile("elementa.000017_R5.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017_R5.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatWeAllowMultipleVersionsOfDifferentFiles() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017_R1.xml");
-		CreateFile("elementa.000017.pdf");
-		CreateFile("elementa.000017_V1.pdf");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"Found article file: \"elementa.000017_R1.xml\".<br>" +
-						"Found \"pdf\" file: \"elementa.000017.pdf\".<br>" +
-						"Found \"pdf\" file: \"elementa.000017_V1.pdf\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatWeRequireProperFormattingForMultipleVersionsOfXMLFile() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017_A.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatSingleXMLFileWithIllegalRevisionIsOK() throws Exception
-	{
-		expectedEx.expect(RuntimeException.class);
-		expectedEx.expectMessage("No article found.");
-
-		CreateFile("elementa.000017_R5a.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		articleDir.analyzeFilenames();
-	}
-
-	@Test
-	public void testThatWeAreSomewhatCaseSensitive() throws Exception
-	{
-		expectedEx.expect(RuntimeException.class);
-		expectedEx.expectMessage("No article found.");
-
-		CreateFile("elementa.000017.XML");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		articleDir.analyzeFilenames();
-	}
-
-	@Test
-	public void testThatWeRequireElementaFilename() throws Exception
-	{
-		expectedEx.expect(RuntimeException.class);
-		expectedEx.expectMessage("No article found.");
-
-		CreateFile("notelementa.000017.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		articleDir.analyzeFilenames();
-	}
-
-	@Test
-	public void testThatWeDetectIllegalXMLFilenames() throws Exception
-	{
-		expectedEx.expect(RuntimeException.class);
-		expectedEx.expectMessage("No article found.");
-
-		CreateFile("elementa.000017.xml.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		articleDir.analyzeFilenames();
-	}
-
-	// Real life directories often have these files. Just verify they don't cause a problem and are ignored like any
-	// other unrecognized file
-
-	@Test
-	public void testThatWeIgnoreFilesThatStartWithADot() throws Exception
-	{
-		CreateFile(".Dogmeat");
-		CreateFile("elementa.000017.xml");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatFullPayloadIsOK() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.epub");
-		CreateFile("elementa.000017.mobi");
-		CreateFile("elementa.000017.pdf");
-		CreateFile("elementa.000017.json");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"Found \"epub\" file: \"elementa.000017.epub\".<br>" +
-						"Found \"json\" file: \"elementa.000017.json\".<br>" +
-						"Found \"mobi\" file: \"elementa.000017.mobi\".<br>" +
-						"Found \"pdf\" file: \"elementa.000017.pdf\".";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatFullPayloadWithDifferentRevisionsIsOK() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017_R7.xml");
-		CreateFile("elementa.000017.epub");
-		CreateFile("elementa.000017_R5.epub");
-		CreateFile("elementa.000017.mobi");
-		CreateFile("elementa.000017_R3.mobi");
-		CreateFile("elementa.000017.pdf");
-		CreateFile("elementa.000017_R1.pdf");
-		CreateFile("elementa.000017_R2.pdf");
-		CreateFile("elementa.000017.json");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"Found article file: \"elementa.000017_R7.xml\".<br>" +
-						"Found \"epub\" file: \"elementa.000017.epub\".<br>" +
-						"Found \"epub\" file: \"elementa.000017_R5.epub\".<br>" +
-						"Found \"json\" file: \"elementa.000017.json\".<br>" +
-						"Found \"mobi\" file: \"elementa.000017.mobi\".<br>" +
-						"Found \"mobi\" file: \"elementa.000017_R3.mobi\".<br>" +
-						"Found \"pdf\" file: \"elementa.000017.pdf\".<br>" +
-						"Found \"pdf\" file: \"elementa.000017_R1.pdf\".<br>" +
-						"Found \"pdf\" file: \"elementa.000017_R2.pdf\".";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	// The directory can include TIFF files. They must have the case sensitive extension of "tif". They must include
-	// an element ID of the form "[eft]<3 digit integer>" and are required.
-
-	@Test
-	public void testThatTIFFilesAreOK() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.e123.tif");
-		CreateFile("elementa.000017.f123.tif");
-		CreateFile("elementa.000017.t123.tif");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.<br>" +
-						"Found \"tif\" file: \"elementa.000017.e123.tif\".<br>" +
-						"Found \"tif\" file: \"elementa.000017.f123.tif\".<br>" +
-						"Found \"tif\" file: \"elementa.000017.t123.tif\".";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatTIFFilesMustBeWellFormedWrongNumberOfDigits() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.e1234.tif");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatTIFFilesMustBeWellFormed() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.e123.tiffffff.tif");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatTIFFilesMustBeWellFormedBadPrefix() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.x123.tif");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	// The directory can include "supplementary files" which have an element ID of the form "s<3 digit integer>".
-	// Supplementary files can have any extension
-
-	@Test
-	public void testThatSupplementalFilesTIFFAreOK() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.s123.tif");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.<br>" +
-						"Found supplemental file: \"elementa.000017.s123.tif\".";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatSupplementalFilesAreOK() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.s123.dog");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.<br>" +
-						"Found supplemental file: \"elementa.000017.s123.dog\".";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatSupplementalFilesAreWellFormedTooManyDigits() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.s1234.dog");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void testThatSupplementalFilesAreWellFormedBadPrefix() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.x123.dog");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void supplementalFilesShouldHaveAnExtension() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.s123");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	@Test
-	public void supplementalFilesShouldHaveANonEmptyExtension() throws Exception
-	{
-		CreateFile("elementa.000017.xml");
-		CreateFile("elementa.000017.s123.");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
-
-		String successMsg =
-				"Found article file: \"elementa.000017.xml\".<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"epub\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"json\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"mobi\" file found.<br>" +
-						"<b><span style=\"color:#461B7E\">WARNING: </span></b> No \"pdf\" file found.";
-
-		String statusMsg = articleDir.analyzeFilenames();
-		Assert.assertEquals(successMsg, statusMsg);
-	}
-
-	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	// getFilenamesToZip
+	// BuildZip
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	@Test
@@ -685,13 +221,19 @@ public class ArticleDirectoryTest
 		CreateFile("elementa.000017.xml");
 		CreateFile("elementa.000017_V1.xml");
 		CreateFile(".Dogmeat");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile(), testPublisher);
 
-		List<String> expectedFilenames = new ArrayList<String>();
-		expectedFilenames.add("elementa.000017_V1.xml");
+		articleDir.BuildZipFile();
+		String publishedMessage = testPublisher.getPublishedMessage();
 
-		List<String> filesToZip = articleDir.getFilenamesToZip();
-		Assert.assertTrue(SameLists(expectedFilenames, filesToZip));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_V1.xml\"."));
+
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \".Dogmeat\"."));
+		Assert.assertTrue(publishedMessage.contains("No epub file found."));
+		Assert.assertTrue(publishedMessage.contains("No pdf file found."));
+		Assert.assertTrue(publishedMessage.contains("No mobi file found."));
+		Assert.assertTrue(publishedMessage.contains("No json file found."));
 	}
 
 	@Test
@@ -699,14 +241,32 @@ public class ArticleDirectoryTest
 	{
 		CreateFile("elementa.000017.xml");
 		CreateFile("elementa.000017_V1.xml");
-		CreateFile("elementa.000017.s123.tiffffff.tif");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
+		CreateFile("elementa.000017_V1a.xml");              // bad revision
+		CreateFile("elementa.000017_V2.XML");               // we're fussy about casing
 
-		List<String> expectedFilenames = new ArrayList<String>();
-		expectedFilenames.add("elementa.000017_V1.xml");
+		CreateFile("elementa.000017.s1234.ppt");            // too many digits
+		CreateFile("elementa.000017.x123.tif");             // "x" isn't valid there
+		CreateFile("elementa.000017.s123.tiffffff.tif");    // uh... tifffffff?
 
-		List<String> filesToZip = articleDir.getFilenamesToZip();
-		Assert.assertTrue(SameLists(expectedFilenames, filesToZip));
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile(), testPublisher);
+
+		articleDir.BuildZipFile();
+		String publishedMessage = testPublisher.getPublishedMessage();
+
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_V1.xml\"."));
+
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_V1a.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_V2.XML\"."));
+
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017.s1234.ppt\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017.x123.tif\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017.s123.tiffffff.tif\"."));
+		Assert.assertTrue(publishedMessage.contains("No epub file found."));
+		Assert.assertTrue(publishedMessage.contains("No pdf file found."));
+		Assert.assertTrue(publishedMessage.contains("No mobi file found."));
+		Assert.assertTrue(publishedMessage.contains("No json file found."));
 	}
 
 	@Test
@@ -722,17 +282,16 @@ public class ArticleDirectoryTest
 		CreateFile("elementa.000017_R1.pdf");
 		CreateFile("elementa.000017_V2.pdf");
 		CreateFile("elementa.000017.json");
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile(), testPublisher);
 
-		List<String> expectedFilenames = new ArrayList<String>();
-		expectedFilenames.add("elementa.000017_V7.xml");
-		expectedFilenames.add("elementa.000017_R5.epub");
-		expectedFilenames.add("elementa.000017_V3.mobi");
-		expectedFilenames.add("elementa.000017_V2.pdf");
-		expectedFilenames.add("elementa.000017.json");
+		articleDir.BuildZipFile();
+		String publishedMessage = testPublisher.getPublishedMessage();
 
-		List<String> filesToZip = articleDir.getFilenamesToZip();
-		Assert.assertTrue(SameLists(expectedFilenames, filesToZip));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_V7.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R5.epub\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_V3.mobi\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_V2.pdf\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017.json\"."));
 	}
 
 
@@ -743,6 +302,7 @@ public class ArticleDirectoryTest
 
 		CreateFile("elementa.000017_R7.pdf");
 		CreateFile("elementa.000017_R6.pdf");
+		CreateFile("elementa.000018_R6.pdf");       // Wrong prefix
 
 		CreateFile("elementa.000017_R130.mobi");
 		CreateFile("elementa.000017_R66.mobi");
@@ -760,18 +320,33 @@ public class ArticleDirectoryTest
 		CreateFile("elementa.000017_R7.s321.ppt");
 		CreateFile("elementa.000017_R3.s321.ppt");
 
-		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
+		CreateFile("elementa.000017.s666.xlsx");        // 4 character extension
 
-		List<String> expectedFilenames = new ArrayList<String>();
-		expectedFilenames.add("elementa.000017_R1.xml");
-		expectedFilenames.add("elementa.000017_R7.pdf");
-		expectedFilenames.add("elementa.000017_R130.mobi");
-		expectedFilenames.add("elementa.000017_R166.json");
-		expectedFilenames.add("elementa.000017_R7.s123.tif");
-		expectedFilenames.add("elementa.000017_R8.s321.ppt");
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile(), testPublisher);
 
-		List<String> filesToZip = articleDir.getFilenamesToZip();
-		Assert.assertTrue(SameLists(expectedFilenames, filesToZip));
+		articleDir.BuildZipFile();
+		String publishedMessage = testPublisher.getPublishedMessage();
+
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R1.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R130.mobi\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R7.pdf\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R166.json\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R7.s123.tif\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017_R8.s321.ppt\"."));
+
+		Assert.assertTrue(publishedMessage.contains("No epub file found."));
+
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R6.pdf\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000018_R6.pdf\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R66.mobi\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R27.json\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R73.json\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R34.json\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R1.s123.tif\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R3.s123.tif\"."));
+
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R3.s321.ppt\"."));
+		Assert.assertTrue(publishedMessage.contains("Ignoring file: \"elementa.000017_R7.s321.ppt\"."));
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -96,7 +96,14 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			else
 			{
 				publishMessage("<br>");
-				errorMessage("Ingest failed in the " + failedJobState + " phase of processing. No content published.");
+				if (failedJobState != null)
+				{
+					errorMessage("Ingest failed in the " + failedJobState + " phase of processing. No content published.");
+				}
+				else
+				{
+					errorMessage("Ingest failed. No content published.");
+				}
 				statusMessage("Processing failed.");
 			}
 
@@ -190,13 +197,10 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
       return 1;
     }
 
-	  sectionMessage("Analyzing filenames.");
 	  ArticleDirectory articleDirectory;
 	  try
 	  {
 		  articleDirectory = new ArticleDirectory(articleDir, this);
-		  String statusMsg = articleDirectory.analyzeFilenames();
-		  publish(statusMsg);
 	  }
 	  catch (RuntimeException e)
 	  {
@@ -228,7 +232,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
     int resultCode = uploadFile(result, jobName);
     if (resultCode != 0) {
-      errorMessage("Upload failed[" + result.getName() + "]");
+      errorMessage("Upload failed [" + result.getName() + "]");
       return 1;
     } else {
       publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds.");

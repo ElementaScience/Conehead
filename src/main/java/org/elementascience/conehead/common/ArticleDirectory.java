@@ -22,7 +22,7 @@ public class ArticleDirectory
 	static final String tifRegex = "[eft]\\d\\d\\d\\.tif";
 	static final String powerRankingRegex = "(_[A-Z]{1}\\d+)";        // power rankings are the "d" in the regex thus they *have* to be present
 	static final String elementIDRegex = "[sfet]\\d\\d\\d";
-	static final String validExtension = dotRegex + "[a-z]{3}";
+	static final String validExtension = dotRegex + "[a-z]{3,4}";
 
 	static final String warningColor = "#461B7E";
 
@@ -106,17 +106,6 @@ public class ArticleDirectory
 		}
 	}
 
-	public String analyzeFilenames()
-	{
-		String statusMsg = "";
-
-		statusMsg += lookForArticleFile();
-		statusMsg += lookForOptionalFiles();
-		statusMsg += lookForTifFiles();
-		statusMsg += lookForSupplementalFiles();
-
-		return statusMsg;
-	}
 
 	public List<String> getFilenamesToZip()
 	{
@@ -212,80 +201,6 @@ public class ArticleDirectory
 		}
 	}
 
-
-	private String lookForArticleFile()
-	{
-		String statusMsg = "";
-		for (String filename : filenames)
-		{
-			String regex = prefix + revisionRegex + dotRegex + "xml";
-			if (filename.matches(regex))
-			{
-				if (statusMsg.length() != 0)
-				{
-					statusMsg += "<br>";
-
-				}
-				statusMsg += "Found article file: \"" + filename + "\".";
-			}
-		}
-
-		return statusMsg;
-	}
-
-	private String lookForOptionalFiles()
-	{
-		String statusMsg = "";
-		List<String> missingExtensions = new ArrayList<String>(optionalExtensions);
-		for (String extension : optionalExtensions)
-		{
-			for (String filename : filenames)
-			{
-				String regex = prefix + revisionRegex + dotRegex + extension;
-				if (filename.matches(regex))
-				{
-					missingExtensions.remove(extension);
-					statusMsg += "<br>" + "Found \"" + extension + "\" file: \"" + filename + "\".";
-				}
-			}
-		}
-
-		for (String extension : missingExtensions)
-		{
-			statusMsg += "<br><b><span style=\"color:" + warningColor + "\">WARNING: </span></b> No \"" + extension + "\" file found.";
-		}
-		return statusMsg;
-	}
-
-	private String lookForTifFiles()
-	{
-		String statusMsg = "";
-		for (String filename : filenames)
-		{
-			String regex = prefix + revisionRegex + dotRegex + tifRegex;
-			if (filename.matches(regex))
-			{
-				statusMsg += "<br>" + "Found \"tif\" file: \"" + filename + "\".";
-			}
-		}
-		return statusMsg;
-	}
-
-
-	private String lookForSupplementalFiles()
-	{
-		String statusMsg = "";
-		for (String filename : filenames)
-		{
-			String temp = prefix + revisionRegex + dotRegex + supplementalRegex;
-			if (filename.matches(temp))
-			{
-				statusMsg += "<br>" + "Found supplemental file: \"" + filename + "\".";
-			}
-		}
-		return statusMsg;
-	}
-
 	public static String makeZipFilename(String filename)
 	{
 		String zipFilename;
@@ -353,10 +268,37 @@ public class ArticleDirectory
 			}
 		}
 
+		publishWarningsAboutIgnoredFiles(ignoredFilenames);
+		publishWarningsAboutMissingOptionalFiles(filenamesToZip);
+	}
+
+	private void publishWarningsAboutIgnoredFiles(Set<String> ignoredFilenames)
+	{
 		publisher.publishMessage("<br>");
 		for (String filename : ignoredFilenames)
 		{
-			publisher.publishMessage("<b><span style=\"color:" + warningColor + "\">WARNING: </span></b>Ignoring file: \"" + filename + "\"");
+			publisher.publishMessage("<b><span style=\"color:" + warningColor + "\">WARNING: </span></b>Ignoring file: \"" + filename + "\".");
+		}
+	}
+
+	private void publishWarningsAboutMissingOptionalFiles(List<String> filenamesToZip)
+	{
+		for (String extension : optionalExtensions)
+		{
+			boolean found = false;
+			String regex = ".*" + extension;
+			for (String filename : filenamesToZip)
+			{
+				if (filename.matches(regex))
+				{
+					found = true;
+				}
+			}
+
+			if (!found)
+			{
+				publisher.publishMessage("<b><span style=\"color:" + warningColor + "\">WARNING: </span></b>No " + extension + " file found.");
+			}
 
 		}
 	}
