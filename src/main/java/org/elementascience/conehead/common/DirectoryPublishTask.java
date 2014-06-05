@@ -5,6 +5,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.transfer.Upload;
+import org.elementascience.conehead.WaitLayerUI;
 
 import javax.swing.*;
 import javax.swing.text.BadLocationException;
@@ -33,8 +34,9 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	private volatile String articleID;
 	private String publishedURLPrefix;
 	private JobState failedJobState;
+	private WaitLayerUI layerUI;
 
-	public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection, String publishedURLPrefix)
+	public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection, String publishedURLPrefix, WaitLayerUI layerUI)
 	{
 		this.uploadService = uploadService;
 		pb = progressBar1;
@@ -43,6 +45,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		ta = textPane;
 		upload = null;
 		this.publishedURLPrefix = publishedURLPrefix;
+		this.layerUI = layerUI;
+
 	}
 
 	@Override
@@ -119,6 +123,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		}
 
 		publish("<hr>");
+		layerUI.stop();
 	}
 
 	private void logResultsToRegistry(Integer result)
@@ -180,6 +185,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
   @Override
   protected Integer doInBackground() throws InterruptedException
   {
+	  layerUI.start();
+
 	  statusMessage("In Progress");
 
     if (articleDir == null) {

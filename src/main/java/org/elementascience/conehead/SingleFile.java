@@ -26,14 +26,17 @@ import java.util.List;
 public class SingleFile {
   UploadService serv;
 
-  private JTextPane progressTextPane;
-  private JButton      selectFileButton;
-  private JPanel       jpanel1;
-  private JLabel       dirNameLabel;
-  private JProgressBar progressBar1;
-  private JLabel statusLabel;
-  private JFrame frame;
+	private JTextPane progressTextPane;
+	private JButton selectFileButton;
+	private JPanel jpanel1;
+	private JLabel dirNameLabel;
+	private JProgressBar progressBar1;
+	private JLabel statusLabel;
+	private JFrame frame;
 	private String publishedURLPrefix;
+
+	private WaitLayerUI layerUI;
+
 
 	public SingleFile()
 	{
@@ -82,20 +85,26 @@ public class SingleFile {
 		progressTextPane.addHyperlinkListener(hyperlinkListener);
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
+		new SingleFile().run();
+	}
 
-    new SingleFile().run();
 
-  }
+	private void run()
+	{
+		frame = new JFrame("Singlefile");
 
+		layerUI = new WaitLayerUI();
+		JLayer<JPanel> jlayer = new JLayer<JPanel>(jpanel1, layerUI);
+		frame.add(jlayer);
 
-  private void run() {
-    frame = new JFrame("Singlefile");
-    frame.setContentPane(new SingleFile().jpanel1);
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.pack();
-    frame.setVisible(true);
-  }
+//		frame.setContentPane(new SingleFile().jpanel1);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.pack();
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
+	}
 
 
   protected void display(List<String> chunks) {
@@ -127,7 +136,7 @@ public class SingleFile {
       dirNameLabel.setText(name);
 
       display(Collections.singletonList("Directory set for upload: " + name + "\n"));
-      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix);
+      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix, layerUI);
       task.execute();
     }
 
