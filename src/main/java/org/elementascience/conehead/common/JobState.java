@@ -11,7 +11,7 @@ public enum JobState
 	UNPACKING,
 	PREPARING,
 	INGESTING,
-	PUBLISHING,
+	STAGING,
 	FINAL
 	{
 		@Override

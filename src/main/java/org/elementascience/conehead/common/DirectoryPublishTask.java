@@ -35,8 +35,10 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	private String publishedURLPrefix;
 	private JobState failedJobState;
 	private WaitLayerUI layerUI;
+	private JButton selectDirButton;
 
-	public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label, File theSelection, String publishedURLPrefix, WaitLayerUI layerUI)
+	public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label,
+	                            File theSelection, String publishedURLPrefix, WaitLayerUI layerUI, JButton selectDirButton)
 	{
 		this.uploadService = uploadService;
 		pb = progressBar1;
@@ -46,7 +48,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		upload = null;
 		this.publishedURLPrefix = publishedURLPrefix;
 		this.layerUI = layerUI;
-
+		this.selectDirButton = selectDirButton;
 	}
 
 	@Override
@@ -124,6 +126,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
 		publish("<hr>");
 		layerUI.stop();
+		selectDirButton.setEnabled(true);
 	}
 
 	private void logResultsToRegistry(Integer result)
@@ -267,7 +270,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	private UploadService.IngestJob monitorJobProgress(String jobName, UploadService.IngestJob job, JobState oldState) throws InterruptedException
 	{
 		JobState jobState = oldState;
-		while (!jobState.equals(JobState.PUBLISHING) && wasSuccessful(job))
+		while (!jobState.equals(JobState.STAGING) && wasSuccessful(job))
 		{
 			Thread.sleep(1000);
 

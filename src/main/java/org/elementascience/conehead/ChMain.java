@@ -55,7 +55,7 @@ public class ChMain {
       if (showOpenDialog != JFileChooser.APPROVE_OPTION) return;
 
       uploadButton.setEnabled(false);
-      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, null, fileChooser.getSelectedFile(), null, null);
+      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, null, fileChooser.getSelectedFile(), null, null, null);
       task.execute();
     }
 

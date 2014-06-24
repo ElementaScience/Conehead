@@ -136,7 +136,7 @@ public class SingleFile {
       dirNameLabel.setText(name);
 
       display(Collections.singletonList("Directory set for upload: " + name + "\n"));
-      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix, layerUI);
+      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix, layerUI, selectFileButton);
       task.execute();
     }
 

@@ -95,7 +95,7 @@ public class Minion {
               if (ingestResult == 0) {
                 System.out.println("Publish article :" + articleNumber);
                 int finalCode = RhinoSubmitter.publish(articleNumber);
-                serv.updatePackageStatus(msg.getBody(), JobState.PUBLISHING, finalCode, "");
+                serv.updatePackageStatus(msg.getBody(), JobState.STAGING, finalCode, "");
 
                 if (finalCode == 0) {
                   System.out.println("article is now fully published");
