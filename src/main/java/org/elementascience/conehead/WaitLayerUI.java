@@ -72,7 +72,7 @@ public class WaitLayerUI extends LayerUI<JPanel> implements ActionListener
 				mAngle = 0;
 			}
 			if (mIsFadingOut) {
-				if (--mFadeCount == 0) {
+				if (--mFadeCount <= 0) {
 					mIsRunning = false;
 					mTimer.stop();
 				}
