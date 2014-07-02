@@ -14,6 +14,8 @@ import javax.swing.text.html.HTMLEditorKit;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -154,16 +156,34 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	{
 		int iteration = 0;
 		int index = 0;
-		int lengthToLog = Math.min(1024, text.substring(index).length());
+		int lengthToLog = getLengthOfUnencodedString(text, 1024);
 		do
 		{
 			String key = timestamp + "_" + articleID;
 			uploadService.logFinalState(key, result, text.substring(index, index + lengthToLog), iteration++);
 
 			index += lengthToLog;
-			lengthToLog = Math.min(1024, text.substring(index).length());
+			lengthToLog = getLengthOfUnencodedString(text.substring(index), 1024);
 
 		} while (lengthToLog > 0);
+	}
+
+	private int getLengthOfUnencodedString(String text, int maxLength)
+	{
+		int portion = Math.min(text.length(), maxLength);
+		try
+		{
+			while (URLEncoder.encode(text.substring(0, portion), "UTF-8").length() > maxLength)
+			{
+				portion -= 100;
+			}
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			throw new RuntimeException("This should never happen...");
+		}
+
+		return portion;
 	}
 
 
