@@ -49,7 +49,7 @@ public class ArticlePreparer {
     String theText = "";
 
     ProcessBuilder pb = new ProcessBuilder("/usr/local/topaz/bin/prepare-sip",
-                                           "-v -o",  "/var/local/ingest/prepped/"+ timestamp + "_" + articleID + ".zip",
+                                           "-o",  "/var/local/ingest/prepped/"+ timestamp + "_" + articleID + ".zip",
                                            "/var/local/ingest/hold/" + timestamp + "_" + articleID + ".zip");
     pb.directory(new File("/var/local/ingest/hold"));
 
