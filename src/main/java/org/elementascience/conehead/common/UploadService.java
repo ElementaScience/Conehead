@@ -316,8 +316,13 @@ public class UploadService {
     return result;
   }
 
+	public String getUploadBucket()
+	{
+		return bucketName;
+	}
 
-  public class IngestJob {
+
+	public class IngestJob {
     String   name;
     JobState state;
     String   timestamp;

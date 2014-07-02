@@ -16,6 +16,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -104,6 +105,10 @@ public class SingleFile {
 		frame.pack();
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
+
+		List<String> msgs = new ArrayList<String>();
+		msgs.add("Uploading to: " + serv.getUploadBucket());
+		display(msgs);
 	}
 
 
