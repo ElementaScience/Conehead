@@ -16,7 +16,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -106,9 +105,6 @@ public class SingleFile {
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 
-		List<String> msgs = new ArrayList<String>();
-		msgs.add("Uploading to: " + serv.getUploadBucket());
-		display(msgs);
 	}
 
 
@@ -141,7 +137,9 @@ public class SingleFile {
       dirNameLabel.setText(name);
 
       display(Collections.singletonList("Directory set for upload: " + name + "\n"));
-      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix, layerUI, selectFileButton);
+	  display(Collections.singletonList("Upload destination: " + serv.getUploadBucket() + "\n"));
+
+	  DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, statusLabel, fileChooser.getSelectedFile(), publishedURLPrefix, layerUI, selectFileButton);
       task.execute();
     }
 
