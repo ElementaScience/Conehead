@@ -89,10 +89,10 @@ public class Minion {
             if (resultCode == 0) {
 
               System.out.println("ingesting package :" + articleNumber);
-              int ingestResult = RhinoSubmitter.attemptIngest(articleNumber);
-              serv.updatePackageStatus(msg.getBody(), JobState.INGESTING, ingestResult, "");
+              String errorString = RhinoSubmitter.attemptIngest(articleNumber);
+              serv.updatePackageStatus(msg.getBody(), JobState.INGESTING, (errorString.length() == 0 ? 0 :1), errorString);
 
-              if (ingestResult == 0) {
+              if (errorString.length() == 0) {
                 System.out.println("Publish article :" + articleNumber);
                 int finalCode = RhinoSubmitter.publish(articleNumber);
                 serv.updatePackageStatus(msg.getBody(), JobState.STAGING, finalCode, "");

@@ -9,7 +9,6 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
@@ -24,7 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.http.entity.ContentType.*;
+import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
 /**
  * User: dgreen
@@ -35,38 +34,46 @@ public class RhinoSubmitter {
   public static void main(String[] args) {
 
 
-    if (0 == attemptIngest("000007") ) {
+    if (attemptIngest("000007").length() == 0 ) {
       publish("000007");
     }
 
 
   }
 
-  static int attemptIngest(String articleNumber) {
-    int result = 0;
-    String name = "elementa." + articleNumber + ".zip";
+  // Returns error string. If empty, all is good. Otherwise...
 
-    if (isIngestible(name)) {
-      boolean overwrite = queryIfLoaded(articleNumber);
-      System.out.println("ready to ingest");
-      if (overwrite) {
-        System.out.println("article exists in system, requesting overwrite on ingest");
-      }
+	static String attemptIngest(String articleNumber)
+	{
+		String errorString = "";
+		String name = "elementa." + articleNumber + ".zip";
 
-      int resultCode = ingest(name, overwrite);
+		if (isIngestible(name))
+		{
+			boolean overwrite = queryIfLoaded(articleNumber);
+			System.out.println("ready to ingest");
+			if (overwrite)
+			{
+				System.out.println("article exists in system, requesting overwrite on ingest");
+			}
 
-      if (resultCode == 0) {
-        System.out.println("Ingest successful: " + name);
-      } else {
-        System.out.println("FAILED to ingest: " + name);
-        result = 1;
-      }
-    } else {
-      System.out.println("article was not found in list of ingestible packages : " + name);
-      result = 1;
-    }
-    return result;
-  }
+			errorString = ingest(name, overwrite);
+
+			if (errorString.length() == 0)
+			{
+				System.out.println("Ingest successful: " + name);
+			}
+			else
+			{
+				System.out.println("FAILED to ingest: " + name);
+			}
+		}
+		else
+		{
+			System.out.println("article was not found in list of ingestible packages : " + name);
+		}
+		return errorString;
+	}
 
 
   static boolean isIngestible(String item) {
@@ -101,9 +108,10 @@ public class RhinoSubmitter {
     return result;
   }
 
+  // Non-empty return string represents and failed ingest
 
-  static int ingest(String name, boolean overwrite) {
-    int result = 0;
+  static String ingest(String name, boolean overwrite) {
+    String result = "";
 
     HttpClient httpclient = new DefaultHttpClient();
 
@@ -118,22 +126,24 @@ public class RhinoSubmitter {
 
       response = httpclient.execute(httpPost);
       StatusLine sl = response.getStatusLine();
-      if (sl.getStatusCode() != 201) {
-        for (String s: IOUtils.readLines(response.getEntity().getContent())) {
-          System.out.println(s);
-        }
-        result = 1;
-      }
+	    if (sl.getStatusCode() != 201)
+	    {
+		    for (String s : IOUtils.readLines(response.getEntity().getContent()))
+		    {
+			    result += s + ". ";
+			    System.out.println(s);
+		    }
+	    }
 
     } catch (UnsupportedEncodingException e) {
       e.printStackTrace();
-      result = 1;
+      result = "UnsupportedEncodingException.";
     } catch (ClientProtocolException e) {
       e.printStackTrace();
-      result = 1;
+      result = "ClientProtocolException.";
     } catch (IOException e) {
       e.printStackTrace();
-      result = 1;
+      result = "IOException.";
     }
 
     return result;
