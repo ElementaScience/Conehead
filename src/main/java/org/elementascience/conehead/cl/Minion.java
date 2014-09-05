@@ -94,10 +94,10 @@ public class Minion {
 
               if (errorString.length() == 0) {
                 System.out.println("Publish article :" + articleNumber);
-                int finalCode = RhinoSubmitter.publish(articleNumber);
-                serv.updatePackageStatus(msg.getBody(), JobState.STAGING, finalCode, "");
+                errorString = RhinoSubmitter.publish(articleNumber);
+                serv.updatePackageStatus(msg.getBody(), JobState.STAGING, (errorString.length() == 0 ? 0 :1), errorString);
 
-                if (finalCode == 0) {
+                if (errorString.length() == 0) {
                   System.out.println("article is now fully published");
                 } else {
                   System.out.println("failed to publish the article after ingest");

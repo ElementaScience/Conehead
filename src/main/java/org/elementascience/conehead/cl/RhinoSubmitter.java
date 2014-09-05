@@ -185,8 +185,8 @@ public class RhinoSubmitter {
     return result;
   }
 
-  static int publish(String articleNumber) {
-    int result = 0;
+  static String publish(String articleNumber) {
+    String errorString = "";
 
     // curl --data "{"state":"published"}"
     // --request PATCH localhost:8080/rhino/articles/info:doi/10.12952/journal.elementa.000007
@@ -205,18 +205,18 @@ public class RhinoSubmitter {
       if (sl.getStatusCode() != 200) {
         for (String s: IOUtils.readLines(response.getEntity().getContent())) {
           System.out.println(s);
+	        errorString += s + ".";
         }
-        result = 1;
       }
 
-      // TODO store the result in the database for later viewing
+      // TODO store the errorString in the database for later viewing
 
     } catch (IOException e) {
       e.printStackTrace();
-      result = 1;
+      errorString = "IOException";
     }
 
 
-    return result;
+    return errorString;
   }
 }
