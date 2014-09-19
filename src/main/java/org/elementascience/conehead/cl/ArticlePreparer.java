@@ -60,9 +60,6 @@ public class ArticlePreparer {
       IOUtils.copy(p.getInputStream(), writer, "UTF-8");
       theText = writer.toString();
 
-//      StreamGobbler outputGobbler = new StreamGobbler(p.getInputStream(), "OUTPUT");
-//      outputGobbler.start();
-
       p.waitFor();
       result = p.exitValue();
 
