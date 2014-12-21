@@ -213,6 +213,7 @@ public class UploadService {
       ArrayList<ReplaceableAttribute> attrs = new ArrayList<ReplaceableAttribute>();
       attrs.add(new ReplaceableAttribute("state", newStatus.toString(), true));
       attrs.add(new ReplaceableAttribute(newStatus + "_res", String.valueOf(result), true));
+      report = report.substring(0, Math.min(report.length(), 1023));
       attrs.add(new ReplaceableAttribute(newStatus + "_rep", report, true));
 
       PutAttributesRequest request = new PutAttributesRequest().withDomainName(registryName).withAttributes(attrs).withItemName(key);
