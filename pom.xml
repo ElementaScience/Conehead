@@ -142,7 +142,7 @@
                   <!-- automatically creates the classpath using all project dependencies,
                        also adding the project build directory -->
                   <classpath/>
-                  <argument>org.elementascience.conehead.cl.Minion</argument>
+                  <argument>org.elementascience.conehead.cl.BarMinion</argument>
                 </arguments>
               </configuration>
             </plugin>
