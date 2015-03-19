@@ -401,7 +401,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			}
 		};
 
-		upload = uploadService.uploadWithListener(f, destName, progressListener);
+		upload = uploadService.uploadWithListener(f, destName + ".zip", progressListener);
 		try
 		{
 			upload.waitForCompletion();

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<jnlp spec="1.0+" codebase="http://staging.elementascience.org/ingest" href="IngestTool.jnlp">
+<jnlp spec="1.0+" codebase="http://beta.elementascience.org/ingest" href="IngestTool.jnlp">
 
   <information>
     <title>IngestTool</title>
     <vendor>Elementa Science</vendor>
-    <homepage href="http://staging.elementascience.org/" />
+    <homepage href="http://beta.elementascience.org/" />
     <description>application that can upload article content to an Elementa server</description>
   </information>
 
