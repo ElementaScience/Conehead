@@ -2,7 +2,7 @@
 <jnlp spec="1.0+" codebase="http://beta.elementascience.org/ingest" href="IngestTool.jnlp">
 
   <information>
-    <title>IngestTool</title>
+    <title>IngestToolV2</title>
     <vendor>Elementa Science</vendor>
     <homepage href="http://beta.elementascience.org/" />
     <description>application that can upload article content to an Elementa server</description>
