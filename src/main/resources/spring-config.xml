@@ -19,6 +19,6 @@
 
 
     <bean id="publishedURLPrefix" class="java.lang.String">
-        <constructor-arg index="0"><value>http://beta.elementascience.org/articles/elementa.</value></constructor-arg>
+        <constructor-arg index="0"><value>http://elementascience.org/articles/elementa.</value></constructor-arg>
     </bean>
 </beans>
