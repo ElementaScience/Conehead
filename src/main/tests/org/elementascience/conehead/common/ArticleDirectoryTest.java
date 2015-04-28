@@ -1,13 +1,14 @@
 package org.elementascience.conehead.common;
 
-import junit.framework.TestCase;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -108,6 +109,9 @@ public class ArticleDirectoryTest
 		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile());
 
 		Assert.assertEquals("000043", articleDir.getArticleID());
+
+		String articleNumber = String.valueOf(Integer.parseInt(articleDir.getArticleID()));
+		Assert.assertEquals("43", articleNumber);
 	}
 
 

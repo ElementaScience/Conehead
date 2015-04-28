@@ -98,7 +98,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
 			if (result == 0)
 			{
-				sectionMessage("Ingest completed successfully; content published <a href=\"" + publishedURLPrefix + articleID + "\">here.</a>");
+				String articleNumber = String.valueOf(Integer.parseInt(articleID));
+				sectionMessage("Ingest completed successfully; content published <a href=\"" + publishedURLPrefix + articleNumber + "\">here.</a>");
 				statusMessage("Processing complete.");
 			}
 			else
