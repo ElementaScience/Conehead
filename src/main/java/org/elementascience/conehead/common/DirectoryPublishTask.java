@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 public class DirectoryPublishTask extends SwingWorker<Integer, String> implements Publisher
 {
 	File articleDir;
+	String stagingComment;
 	JTextPane ta;
 	JLabel statusLabel;
 
@@ -40,12 +41,13 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 	private JButton selectDirButton;
 
 	public DirectoryPublishTask(UploadService uploadService, JTextPane textPane, JProgressBar progressBar1, JLabel label,
-	                            File theSelection, String publishedURLPrefix, WaitLayerUI layerUI, JButton selectDirButton)
+	                            File ingestDirectory, String stagingComment, String publishedURLPrefix, WaitLayerUI layerUI, JButton selectDirButton)
 	{
 		this.uploadService = uploadService;
 		pb = progressBar1;
 		statusLabel = label;
-		articleDir = theSelection;
+		this.articleDir = ingestDirectory;
+		this.stagingComment = stagingComment;
 		ta = textPane;
 		upload = null;
 		this.publishedURLPrefix = publishedURLPrefix;
@@ -83,7 +85,8 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 		}
 	}
 
-	public static void scrollToBottom(JComponent component) {
+	public static void scrollToBottom(JComponent component)
+	{
 		Rectangle visibleRect = component.getVisibleRect();
 		visibleRect.y = component.getHeight() - visibleRect.height;
 		component.scrollRectToVisible(visibleRect);
@@ -190,103 +193,97 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 
 	// This keyword at the beginning updates the "Status" label as the top of the panel.
 
-  void statusMessage(String msg) {
-    publish("status" + msg);
-  }
+	void statusMessage(String msg)
+	{
+		publish("status" + msg);
+	}
 
-  void sectionMessage(String msg) {
-    publish("<h2>" + msg + "</h2>");
-  }
+	void sectionMessage(String msg)
+	{
+		publish("<h2>" + msg + "</h2>");
+	}
 
-  void errorMessage(String msg) {
-    publish("<b><span style=\"color:#ff0000\">ERROR</span></b>: " + msg);
-  }
+	void errorMessage(String msg)
+	{
+		publish("<b><span style=\"color:#ff0000\">ERROR</span></b>: " + msg);
+	}
 
-  void warningMessage(String msg) {
-    publish("<b><span style=\"color:#461B7E\">WARNING</span></b>: " + msg);
-  }
+	void warningMessage(String msg)
+	{
+		publish("<b><span style=\"color:#461B7E\">WARNING</span></b>: " + msg);
+	}
 
-  @Override
-  protected Integer doInBackground() throws InterruptedException
-  {
-	  layerUI.start();
+	@Override
+	protected Integer doInBackground() throws InterruptedException
+	{
+		layerUI.start();
 
-	  statusMessage("In Progress");
+		statusMessage("In Progress");
 
-    if (articleDir == null) {
-      errorMessage("Invalid input directory [null].");
-      return 1;
-    }
+		ArticleDirectory articleDirectory;
+		try
+		{
+			articleDirectory = new ArticleDirectory(articleDir, this);
+		}
+		catch (RuntimeException e)
+		{
+			errorMessage(e.getMessage());
+			return 1;
+		}
 
-    if (!articleDir.exists()) {
-      errorMessage("Input directory does not exist. [" + articleDir.getAbsolutePath() + "]");
-      return 1;
-    }
+		//TODO Must implement graphic file validation
+		// publish("\n<h2>Confirming filetypes.</h2>");
 
-    if (!articleDir.isDirectory()) {
-      errorMessage("Input directory is not actually a directory. [" + articleDir.getAbsolutePath() + "]");
-      return 1;
-    }
+		sectionMessage("Zipping directory contents for upload.");
 
-	  ArticleDirectory articleDirectory;
-	  try
-	  {
-		  articleDirectory = new ArticleDirectory(articleDir, this);
-	  }
-	  catch (RuntimeException e)
-	  {
-		  errorMessage(e.getMessage());
-		  return 1;
-	  }
+		File result = articleDirectory.BuildZipFile();
 
-    //TODO Must implement graphic file validation
-    // publish("\n<h2>Confirming filetypes.</h2>");
+		if (result == null)
+		{
+			errorMessage("failed to zip input[" + result + "]");
+			return 1;
+		}
 
-	  sectionMessage("Zipping directory contents for upload.");
+		sectionMessage("Uploading to server.");
+		pb.setVisible(true);
 
-	  File result = articleDirectory.BuildZipFile();
+		long unixTime = System.currentTimeMillis() / 1000L;
+		String timestamp = String.valueOf(unixTime);
 
-    if (result == null) {
-      errorMessage("failed to zip input[" + result + "]");
-      return 1;
-    }
+		String articleID = articleDirectory.getArticleID();
+		String jobName = timestamp + "_" + articleID;
+		publish("Job Name: " + jobName);
 
-	  sectionMessage("Uploading to server.");
-    pb.setVisible(true);
+		int resultCode = uploadFile(result, jobName);
+		if (resultCode != 0)
+		{
+			errorMessage("Upload failed [" + result.getName() + "]");
+			return 1;
+		}
+		else
+		{
+			publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds.");
+		}
 
-    long unixTime = System.currentTimeMillis() / 1000L;
-    String timestamp = String.valueOf(unixTime);
+		sectionMessage("Notifying server to prepare and load article.");
+		resultCode = uploadService.notifyMinion(jobName, stagingComment);
+		if (resultCode != 0)
+		{
+			errorMessage("queue insertion failed[" + jobName + "]");
+			return 1;
+		}
 
-	  String articleID = articleDirectory.getArticleID();
-	  String jobName = timestamp + "_" + articleID;
-	  publish("Job Name: " + jobName);
+		UploadService.IngestJob job = waitForJobToAppear(jobName);
 
-    int resultCode = uploadFile(result, jobName);
-    if (resultCode != 0) {
-      errorMessage("Upload failed [" + result.getName() + "]");
-      return 1;
-    } else {
-      publish("Upload completed in " + String.valueOf((System.currentTimeMillis() / 1000L) - unixTime) + " seconds.");
-    }
+		JobState js = JobState.valueOf(job.getState());
+		publishJobOutput(job);
 
-	  sectionMessage("Notifying server to prepare and load article.");
-    resultCode = uploadService.notifyMinion(jobName);
-    if (resultCode != 0) {
-      errorMessage("queue insertion failed[" + jobName + "]");
-      return 1;
-    }
+		job = monitorJobProgress(jobName, job, js);
 
-	  UploadService.IngestJob job = waitForJobToAppear(jobName);
-
-	  JobState js = JobState.valueOf(job.getState());
-	  publishJobOutput(job);
-
-	  job = monitorJobProgress(jobName, job, js);
-
-	  this.timestamp = timestamp;
-	  this.articleID = articleID;
-	  return job.getCode();
-  }
+		this.timestamp = timestamp;
+		this.articleID = articleID;
+		return job.getCode();
+	}
 
 	private UploadService.IngestJob monitorJobProgress(String jobName, UploadService.IngestJob job, JobState oldState) throws InterruptedException
 	{
@@ -330,7 +327,7 @@ public class DirectoryPublishTask extends SwingWorker<Integer, String> implement
 			publish("Detailed output from this phase: <br><br>");
 			for (String item : jobOutput.split("\n"))
 			{
-				publish("<span style=\"color:#0011FF\">&nbsp;&nbsp;&nbsp;"  + item );
+				publish("<span style=\"color:#0011FF\">&nbsp;&nbsp;&nbsp;" + item);
 			}
 		}
 		else

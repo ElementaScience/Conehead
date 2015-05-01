@@ -1,6 +1,5 @@
 package org.elementascience.conehead;
 
-import org.elementascience.conehead.common.DirectoryPublishTask;
 import org.elementascience.conehead.common.UploadService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -55,8 +54,8 @@ public class ChMain {
       if (showOpenDialog != JFileChooser.APPROVE_OPTION) return;
 
       uploadButton.setEnabled(false);
-      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, null, fileChooser.getSelectedFile(), null, null, null);
-      task.execute();
+//      DirectoryPublishTask task = new DirectoryPublishTask(serv, progressTextPane, progressBar1, null, fileChooser.getSelectedFile(), null, null, null);
+//      task.execute();
     }
 
   }

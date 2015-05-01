@@ -262,10 +262,10 @@ public class UploadService {
 	}
 
 
-	public int notifyMinion(String jobName) {
+	public int notifyMinion(String jobName, String stagingComment) {
     int result = 0;
     try {
-	  String msg = "{\"worker\": {\"action\": \"stage\", \"s3_object\": \"" + jobName + "\"}}";
+	  String msg = "{\"worker\": {\"action\": \"stage\", \"s3_object\": \"" + jobName + "\", \"comment\": \"" + stagingComment + "\"}}";
       SendMessageRequest mRequest = new SendMessageRequest(queueURL, msg);
 
       SendMessageResult sendMessageResult = sqs.sendMessage(mRequest);
