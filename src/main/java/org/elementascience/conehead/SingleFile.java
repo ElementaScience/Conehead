@@ -99,7 +99,7 @@ public class SingleFile
 
 	private void run()
 	{
-		frame = new JFrame("Elementa Ingest Client - Version 2.1");
+		frame = new JFrame("Elementa Ingest Client - Version 2.2");
 
 		layerUI = new WaitLayerUI();
 		JLayer<JPanel> jlayer = new JLayer<JPanel>(jpanel1, layerUI);

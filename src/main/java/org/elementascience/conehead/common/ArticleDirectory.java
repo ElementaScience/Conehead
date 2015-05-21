@@ -17,11 +17,9 @@ public class ArticleDirectory
 {
 	static final String prefixRegex = "elementa\\.\\d\\d\\d\\d\\d\\d";
 	static final String revisionRegex = "(_[A-Z]{1}\\d+)*";
-	static final String supplementalRegex = "[s]\\d\\d\\d\\..+";
 	static final String dotRegex = "\\.";
-	static final String tifRegex = "[eft]\\d\\d\\d\\.tif";
 	static final String powerRankingRegex = "(_[A-Z]{1}\\d+)";        // power rankings are the "d" in the regex thus they *have* to be present
-	static final String elementIDRegex = "[sfet]\\d\\d\\d";
+	static final String elementIDRegex = "[sfetb]\\d\\d\\d";
 	static final String validExtension = dotRegex + "[a-z]{3,4}";
 
 	static final String warningColor = "#461B7E";

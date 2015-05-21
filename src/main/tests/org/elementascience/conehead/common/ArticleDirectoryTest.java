@@ -131,6 +131,20 @@ public class ArticleDirectoryTest
 		Assert.assertEquals("s123", ArticleDirectory.getElementID(filename));
 	}
 
+	@Test
+	public void testElementIDForBookCoverImage() throws Exception
+	{
+		String filename = "elementa.000017.b001.tif";
+		Assert.assertEquals("b001", ArticleDirectory.getElementID(filename));
+	}
+
+	@Test
+	public void testIllegalElementID() throws Exception
+	{
+		String filename = "elementa.000017.x001.tif";
+		Assert.assertNull(ArticleDirectory.getElementID(filename));
+	}
+
 
 	@Test
 	public void testGetPowerRankingWithoutPowerRanking() throws Exception
@@ -218,6 +232,25 @@ public class ArticleDirectoryTest
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// BuildZip
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	@Test
+	public void testThatWeIncludeBookCoverImages() throws Exception
+	{
+		CreateFile("elementa.000017.xml");
+		CreateFile("elementa.000017.b001.tif");
+		ArticleDirectory articleDir = new ArticleDirectory(directory.toFile(), testPublisher);
+
+		articleDir.BuildZipFile();
+		String publishedMessage = testPublisher.getPublishedMessage();
+
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017.xml\"."));
+		Assert.assertTrue(publishedMessage.contains("Adding file: \"elementa.000017.b001.tif\"."));
+
+		Assert.assertTrue(publishedMessage.contains("No epub file found."));
+		Assert.assertTrue(publishedMessage.contains("No pdf file found."));
+		Assert.assertTrue(publishedMessage.contains("No mobi file found."));
+		Assert.assertTrue(publishedMessage.contains("No json file found."));
+	}
 
 	@Test
 	public void testThatWeHarvestLastRevisionSimple() throws Exception
